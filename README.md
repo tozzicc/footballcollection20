@@ -9,6 +9,15 @@ Football Collection Builder é uma aplicação para construir e gerenciar coleç
 - ET-001: concluída
 - ET-002: concluída
 - ET-003: concluída
+- ET-004: concluída
+- ET-005: concluída
+- ET-006: concluída
+- ET-007A: concluída
+- ET-007B: concluída
+
+## Atualização recente
+
+O frontend agora inclui um layout base com AppShell, navegação real via React Router, páginas base para as principais seções e o módulo Workspace com persistência local usando `localStorage`.
 
 ## Objetivo
 
