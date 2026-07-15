@@ -17,3 +17,12 @@ export type WorkspaceInfo = {
   description: string
   exampleStructure: string[]
 }
+
+export type WorkspaceValidationResponse = {
+  valid: boolean
+  exists: boolean
+  isDirectory: boolean
+  readable: boolean
+  normalizedPath: string
+  message: string
+}

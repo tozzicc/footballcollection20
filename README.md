@@ -42,6 +42,27 @@ football-collection-builder/
 └── .gitignore         # Arquivos a serem ignorados pelo Git
 ```
 
+## Backend
+
+Para executar o backend:
+
+```bash
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Para executar os testes do backend:
+
+```bash
+cd backend
+.\.venv\Scripts\Activate.ps1
+pytest
+```
+
 ## Frontend
 
 Para executar o frontend:

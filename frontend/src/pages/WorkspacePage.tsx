@@ -3,7 +3,9 @@ import WorkspaceCard from '../components/workspace/WorkspaceCard'
 import WorkspaceForm from '../components/workspace/WorkspaceForm'
 import WorkspaceInfoPanel from '../components/workspace/WorkspaceInfo'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import Button from '../components/ui/Button'
 import useWorkspace from '../hooks/useWorkspace'
+import useWorkspaceValidation from '../hooks/useWorkspaceValidation'
 import { workspaceInfoMock } from '../data/workspaceMock'
 import SectionCard from '../components/ui/SectionCard'
 import type { WorkspaceStatus } from '../types/workspace'
@@ -27,6 +29,24 @@ const WorkspacePage = () => {
     saveWorkspace,
     clearWorkspace,
   } = useWorkspace()
+
+  const {
+    validateWorkspace,
+    validationResult,
+    isValidating,
+    validationError,
+    lastValidatedAt,
+  } = useWorkspaceValidation()
+
+  const formattedLastValidated = lastValidatedAt
+    ? new Date(lastValidatedAt).toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : 'Ainda não validado.'
 
   const formattedLastUpdated = lastUpdated
     ? new Date(lastUpdated).toLocaleString('pt-BR', {
@@ -60,6 +80,17 @@ const WorkspacePage = () => {
               feedbackType={feedbackType}
             />
 
+            <div className="workspace-validate-actions">
+              <Button
+                type="button"
+                variant="primary"
+                disabled={isValidating}
+                onClick={() => validateWorkspace(workspacePath)}
+              >
+                {isValidating ? 'Validando...' : 'Validar Workspace'}
+              </Button>
+            </div>
+
             <SectionCard title="Workspace Atual" description="Status do caminho configurado">
               <p className="workspace-current-status">{statusLabelMap[status]}</p>
               {isConfigured ? (
@@ -76,6 +107,10 @@ const WorkspacePage = () => {
             info={workspaceInfoMock}
             status={status}
             lastUpdated={formattedLastUpdated}
+            validationResult={validationResult}
+            validationError={validationError}
+            isValidating={isValidating}
+            lastValidatedAt={formattedLastValidated}
           />
         </aside>
       </div>
