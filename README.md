@@ -1,8 +1,8 @@
 # Football Collection Builder
 
-## Descrição
+## Visão geral
 
-Football Collection Builder é uma aplicação para construir e gerenciar coleções de futebol. O projeto permite aos usuários organizar, catalogar e exportar suas coleções de cards, figurinhas e outros itens relacionados ao futebol.
+Football Collection Builder é uma aplicação web para organizar e analisar acervos digitais relacionados a futebol. Ao final da ET-007D, o projeto possui interface navegável, configuração local de Workspace e um Scanner integrado ao backend para leitura recursiva do acervo.
 
 ## Status das ETs
 
@@ -14,39 +14,88 @@ Football Collection Builder é uma aplicação para construir e gerenciar coleç
 - ET-006: concluída
 - ET-007A: concluída
 - ET-007B: concluída
+- ET-007D: concluída
+- ET-008: concluída
 
-## Atualização recente
+## Arquitetura atual
 
-O frontend agora inclui um layout base com AppShell, navegação real via React Router, páginas base para as principais seções e o módulo Workspace com persistência local usando `localStorage`.
-
-## Objetivo
-
-Criar uma plataforma web completa que facilite a gestão de coleções de futebol com recursos de:
-- Catalogação de itens
-- Organização por coleções
-- Importação e exportação de dados
-- Interface intuitiva e responsiva
-
-## Estrutura do Projeto
-
+```text
+Frontend (React + TypeScript + Vite)
+  ├─ Workspace salvo no localStorage
+  └─ Scanner Page / scannerService
+               │ POST /api/scanner/scan
+               ▼
+Backend (Python + FastAPI)
+  ├─ rota e modelos do Scanner
+  ├─ Scanner Service
+  ├─ Workspace Service (normalização e validação)
+  └─ Workspace Reader (percurso recursivo somente leitura)
+               │
+               ▼
+Workspace no sistema de arquivos acessível ao backend
 ```
+
+O frontend usa `VITE_API_BASE_URL` como URL-base da API. Em desenvolvimento, `frontend/.env.example` sugere `http://127.0.0.1:8000`. O CORS do backend aceita o frontend local em `localhost:5173` e `127.0.0.1:5173`.
+
+## Estrutura do projeto
+
+```text
 football-collection-builder/
-├── frontend/          # Aplicação frontend (React)
-├── backend/           # API backend (Node.js/Express)
+├── frontend/          # Aplicação React, TypeScript e Vite
+├── backend/           # API FastAPI e serviços Python
 ├── database/          # Scripts e arquivos de banco de dados
 ├── docs/              # Documentação do projeto
-├── exports/           # Arquivos exportados pelos usuários
-├── logs/              # Logs de aplicação
-├── tests/             # Testes automatizados
-├── README.md          # Este arquivo
-└── .gitignore         # Arquivos a serem ignorados pelo Git
+├── exports/           # Arquivos exportados
+├── logs/              # Logs da aplicação
+├── tests/             # Estrutura de testes do projeto
+└── README.md
 ```
 
-## Backend
+## Scanner do acervo — ET-007D
 
-Para executar o backend:
+A ET-007D implementou o fluxo real de análise do Workspace, da interface até o sistema de arquivos:
 
-```bash
+1. O usuário configura um caminho na página Workspace; a configuração fica no `localStorage` do navegador.
+2. A página Scanner reutiliza esse caminho e envia `{ "workspacePath": "..." }` ao backend.
+3. O backend normaliza e valida existência, tipo e permissão de leitura do caminho.
+4. O `WorkspaceReader` percorre arquivos e diretórios recursivamente sem seguir links simbólicos de diretório.
+5. O `Scanner Service` calcula contagens, tamanho total, categorias, extensões, duração e erros não fatais.
+6. O frontend apresenta o estado da análise, o resumo e a distribuição por extensão.
+
+### Comportamento somente leitura
+
+O Scanner não cria, edita, move, renomeia nem exclui itens do Workspace. Também não gera catálogo, arquivos auxiliares ou conteúdo dentro do acervo. A leitura de metadados serve apenas para obter tipo e tamanho; erros pontuais são registrados no resultado quando possível.
+
+### Categorias e extensões suportadas
+
+As extensões são normalizadas para minúsculas. Arquivos sem extensão e extensões não mapeadas entram em `other`.
+
+| Categoria | Extensões |
+|---|---|
+| `images` | `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`, `.svg`, `.tif`, `.tiff` |
+| `pages` | `.htm`, `.html`, `.asp` |
+| `data` | `.json`, `.xml`, `.csv`, `.dat` |
+| `videos` | `.mp4`, `.avi`, `.mov`, `.mkv`, `.webm`, `.mpeg`, `.mpg` |
+| `audio` | `.mp3`, `.wav`, `.flac`, `.aac`, `.ogg` |
+| `documents` | `.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.txt`, `.rtf` |
+| `archives` | `.zip`, `.rar`, `.7z`, `.tar`, `.gz` |
+| `other` | sem extensão ou qualquer extensão não listada |
+
+### Endpoint `POST /api/scanner/scan`
+
+```json
+{
+  "workspacePath": "C:\\caminho\\do\\acervo"
+}
+```
+
+A resposta contém status, caminho normalizado, início, fim, duração, totais de arquivos/diretórios/bytes, contagens por categoria, resumo de extensões e erros não fatais. As extensões são ordenadas por quantidade decrescente e depois alfabeticamente.
+
+## Como executar
+
+### Backend
+
+```powershell
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -55,33 +104,55 @@ pip install -r requirements-dev.txt
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Para executar os testes do backend:
+A documentação interativa da API fica em `http://127.0.0.1:8000/docs`.
 
-```bash
+### Frontend
+
+```powershell
+cd frontend
+Copy-Item .env.example .env
+npm install
+npm run dev
+```
+
+## Testes implementados
+
+A suíte do backend possui 14 testes: um de health, quatro de validação do Workspace e nove do Scanner Service. O Scanner é testado com diretório vazio, subpastas, totais, classificação, extensões em maiúsculas, arquivo sem extensão, caminhos inválidos, ordenação por extensão e timestamps/duração.
+
+```powershell
 cd backend
 .\.venv\Scripts\Activate.ps1
 pytest
 ```
 
-## Frontend
+## Limitações atuais
 
-Para executar o frontend:
+- A análise é síncrona e não possui progresso percentual, pausa ou cancelamento.
+- O frontend aguarda no máximo 300 segundos; acervos grandes podem exceder esse tempo.
+- Resultados não são persistidos e nenhum catálogo é gerado.
+- O caminho precisa estar visível e legível para o processo do backend.
+- Links simbólicos de diretório não são percorridos.
+- A classificação usa somente a extensão, não o conteúdo do arquivo.
+- Não há teste automatizado específico do endpoint do Scanner nem do fluxo visual do frontend.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
 
-## Documentação do Design System
+## Inventory Builder — ET-008
 
-Veja também: `docs/design-system.md`
+O Inventory é a fonte de dados estruturada para os próximos módulos. O fluxo atual é `Workspace → Scanner → Inventory Builder`: somente o Scanner percorre o disco, coleta arquivos, pastas e metadados em uma única passagem; o Builder transforma exclusivamente esses arrays tipados, sem reler o Workspace.
 
-## Próximos Passos
+- `POST /api/inventory/build` recebe `workspacePath`, executa o Scanner uma vez e retorna o Inventory completo.
+- O Inventory contém metadata, estatísticas, pastas, itens, categorias, extensões e erros.
+- Cada item recebe ID determinístico e preserva caminhos, nome, extensão, categoria, tamanho, datas e legibilidade fornecidos pelo Scanner.
+- A página `/inventory` apresenta resumo, categorias, extensões e amostras de até 50 pastas e arquivos.
+- O endpoint existente `POST /api/scanner/scan` permanece retrocompatível; os campos `files` e `folders` foram adicionados sem modificar o resumo anterior.
 
-- [ ] Criar esquema de banco de dados
-- [ ] Implementar API RESTful
-- [ ] Desenvolver UI/UX
+### Limitações do Inventory
+
+Nesta etapa não há persistência em SQLite, parsers HTML/imagem, catálogo, hash, duplicidades, exportação ou paginação. Construir o Inventory executa uma nova análise completa e mantém o resultado apenas no estado atual da página.
+## Documentação adicional
+
+- Design system: `docs/design-system.md`
+- Backend: `backend/README.md`
 
 ## Licença
 
