@@ -1368,3 +1368,57 @@
     flex-direction: column;
   }
 }
+
+.inventory-database-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.inventory-database-details {
+  display: grid;
+  gap: var(--space-xs);
+  color: var(--color-text-muted);
+}
+
+.inventory-database-details p {
+  margin: 0;
+}
+
+.inventory-success {
+  color: var(--color-success);
+  margin: var(--space-md) 0 0;
+}
+
+/* ============ HTML PARSER ============ */
+.parser-actions, .parser-status-line, .parser-pagination, .parser-details-header { display: flex; align-items: center; gap: var(--space-md); }
+.parser-actions { margin: var(--space-xl) 0; flex-wrap: wrap; }
+.parser-status-line, .parser-details-header { justify-content: space-between; }
+.parser-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-md); }
+.parser-metrics .card-surface { display: grid; gap: var(--space-xs); }
+.parser-metrics span { color: var(--color-text-muted); }
+.parser-metrics strong { font-size: 1.3rem; }
+.parser-search { display: grid; gap: var(--space-xs); max-width: 420px; margin-bottom: var(--space-md); }
+.parser-search input { background: var(--color-surface-strong); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); padding: var(--space-sm); }
+.parser-table { min-width: 900px; }
+.parser-link-button { border: 0; padding: 0; background: transparent; color: var(--color-primary); cursor: pointer; text-align: left; text-decoration: underline; }
+.parser-pagination { justify-content: flex-end; margin-top: var(--space-md); }
+.parser-details { width: min(900px, 100%); max-height: 90vh; overflow-y: auto; }
+.parser-details h2, .parser-details p { margin-top: 0; }
+.parser-details-header p { color: var(--color-text-muted); word-break: break-all; }
+.parser-reference-list { overflow-wrap: anywhere; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 1024px) { .parser-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .parser-metrics { grid-template-columns: 1fr; }
+  .parser-status-line, .parser-details-header { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 768px) {
+  .inventory-database-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

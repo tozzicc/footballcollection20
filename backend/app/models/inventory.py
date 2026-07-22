@@ -68,3 +68,19 @@ class Inventory(BaseModel):
 
 class InventoryRequest(BaseModel):
     workspacePath: str
+
+class InventoryPersistenceResult(BaseModel):
+    success: bool
+    databaseCreated: bool
+    savedAt: str
+    fileCount: int
+    folderCount: int
+    durationMs: int
+    message: str
+
+
+class InventoryDatabaseStatus(BaseModel):
+    databaseCreated: bool
+    lastSavedAt: str | None = None
+    fileCount: int = 0
+    folderCount: int = 0

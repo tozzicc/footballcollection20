@@ -22,3 +22,19 @@ export type InventoryExtensionSummary = { extension: string; count: number }
 export type InventoryMetadata = { generatedAt: string; scannerVersion: string; workspacePath: string; durationMs: number }
 export type Inventory = { metadata: InventoryMetadata; statistics: InventoryStatistics; folders: InventoryFolder[]; items: InventoryItem[]; categories: InventoryCategorySummary[]; extensions: InventoryExtensionSummary[]; errors: ScanError[] }
 export type InventoryRequest = { workspacePath: string }
+export type InventoryPersistenceResult = {
+  success: boolean
+  databaseCreated: boolean
+  savedAt: string
+  fileCount: number
+  folderCount: number
+  durationMs: number
+  message: string
+}
+
+export type InventoryDatabaseStatus = {
+  databaseCreated: boolean
+  lastSavedAt: string | null
+  fileCount: number
+  folderCount: number
+}

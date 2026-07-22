@@ -16,6 +16,7 @@ Football Collection Builder é uma aplicação web para organizar e analisar ace
 - ET-007B: concluída
 - ET-007D: concluída
 - ET-008: concluída
+- ET-009: concluída
 
 ## Arquitetura atual
 
@@ -148,7 +149,37 @@ O Inventory é a fonte de dados estruturada para os próximos módulos. O fluxo 
 
 ### Limitações do Inventory
 
-Nesta etapa não há persistência em SQLite, parsers HTML/imagem, catálogo, hash, duplicidades, exportação ou paginação. Construir o Inventory executa uma nova análise completa e mantém o resultado apenas no estado atual da página.
+O Inventory pode ser persistido em SQLite pela ET-009. Ainda não há parsers HTML/imagem, catálogo, hash, duplicidades, exportação, sincronização incremental ou paginação.
+
+## Inventory Repository — ET-009
+
+A camada Repository persiste o Inventory atual em `database/football_collection.db` usando `sqlite3` da biblioteca padrão, sem ORM. O banco e o schema são criados automaticamente.
+
+```text
+Inventory → Inventory Persistence Service → Inventory Repository → SQLite
+```
+
+As tabelas `inventory_metadata`, `inventory_statistics`, `inventory_folders`, `inventory_items`, `inventory_extensions` e `inventory_categories` são substituídas em uma única transação. Uma falha provoca rollback completo, preservando o Inventory anterior. Índices cobrem caminho relativo, extensão, categoria e diretório.
+
+Endpoints:
+
+- `POST /api/inventory/save`: persiste um Inventory completo;
+- `GET /api/inventory/status`: informa criação, última gravação e quantidades;
+- `GET /api/inventory/statistics`: retorna estatísticas persistidas;
+- `GET /api/inventory/extensions`: retorna extensões persistidas;
+- `GET /api/inventory/categories`: retorna categorias persistidas.
+
+Na página Inventory, o botão **Salvar Inventory** persiste o resultado construído e o card **Status do Banco** mostra última gravação, arquivos, pastas e duração da operação.
+
+## Parser HTML — ET-010
+
+O fluxo Inventory Repository → HTML Parser Service → HTML Parser Repository → API → Frontend analisa apenas itens persistidos da categoria pages com extensão .htm, .html ou .asp. O módulo usa BeautifulSoup 4 com html.parser; ASP é tratado exclusivamente como HTML estático e nunca é executado.
+
+A leitura tenta BOM, charset declarado, UTF-8, CP1252 e Latin-1. Título, idioma, descrição, headings, prévia textual de até 500 caracteres, imagens e links são persistidos sem armazenar o HTML completo. Referências internas são resolvidas contra o Inventory; URLs externas não são acessadas.
+
+Endpoints: POST /api/html-parser/parse, GET /api/html-parser/status, GET /api/html-parser/summary, GET /api/html-parser/pages, GET /api/html-parser/pages/{id} e GET /api/html-parser/missing-references. A interface está em /parser-html.
+
+O parser é sequencial, síncrono e somente leitura: não corrige links, baixa recursos, executa ASP/JavaScript, cria arquivos ou altera o Workspace.
 ## Documentação adicional
 
 - Design system: `docs/design-system.md`

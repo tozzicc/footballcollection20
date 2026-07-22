@@ -31,6 +31,27 @@ export class ApiClient {
     }
   }
 
+  async get<T>(path: string): Promise<T> {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), this.timeoutMs)
+
+    try {
+      const response = await fetch(this.buildUrl(path), { signal: controller.signal })
+      if (!response.ok) {
+        const payload = await this.parseJson(response).catch(() => null)
+        throw new Error(payload?.detail ?? `Erro HTTP ${response.status}`)
+      }
+      return await this.parseJson(response)
+    } catch (caughtError: unknown) {
+      if (caughtError instanceof DOMException && caughtError.name === 'AbortError') {
+        throw new Error('Tempo de conexão excedido com o backend.', { cause: caughtError })
+      }
+      if (caughtError instanceof Error) throw caughtError
+      throw new Error('Erro na requisição ao backend.', { cause: caughtError })
+    } finally {
+      window.clearTimeout(timeout)
+    }
+  }
   async post<T>(path: string, body: unknown): Promise<T> {
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), this.timeoutMs)

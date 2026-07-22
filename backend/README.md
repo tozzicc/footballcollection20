@@ -85,7 +85,7 @@ cd backend
 pytest
 ```
 
-A suíte inclui 24 testes cobrindo health, Workspace, retrocompatibilidade/metadados do Scanner, Inventory Builder, Inventory Service e endpoint do Inventory. Os testes do Scanner verificam diretório vazio, subpastas, totais de arquivos/diretórios/bytes, classificação, extensões em maiúsculas, arquivos sem extensão, caminhos inválidos, ordenação das extensões e timestamps/duração.
+A suíte inclui 34 testes cobrindo health, Workspace, Scanner, Inventory Builder, Inventory Service, Repository SQLite, schema, rollback, consultas e regravação. Os testes do Scanner verificam diretório vazio, subpastas, totais de arquivos/diretórios/bytes, classificação, extensões em maiúsculas, arquivos sem extensão, caminhos inválidos, ordenação das extensões e timestamps/duração.
 
 ## Limitações atuais
 
@@ -118,3 +118,41 @@ A resposta contém:
 - `errors`: falhas não fatais herdadas do Scanner.
 
 Arquitetura: a rota delega ao `InventoryService`, que executa o Scanner uma vez e entrega sua resposta ao `Inventory Builder`. O Builder não importa nem utiliza `WorkspaceReader`, `Path` ou APIs de sistema de arquivos.
+## Inventory Repository — ET-009
+
+A persistência usa `sqlite3`, sem ORM, no arquivo padrão `database/football_collection.db`. `app/database` gerencia conexão e schema; `InventoryRepository` executa somente operações de banco; `InventoryPersistenceService` valida contagens, delega a gravação e confirma o resultado.
+
+### Schema
+
+- `inventory_metadata`
+- `inventory_statistics`
+- `inventory_folders`
+- `inventory_items`
+- `inventory_extensions`
+- `inventory_categories`
+
+Todas as tabelas possuem chave primária. Há índices em `relative_path`, `extension`, `category` e `directory`. Não há triggers.
+
+Cada gravação limpa o Inventory anterior e insere metadata, estatísticas, extensões, categorias, pastas e arquivos na mesma transação. Em caso de exceção, é executado rollback.
+
+### Endpoints de persistência
+
+- `POST /api/inventory/save`
+- `GET /api/inventory/statistics`
+- `GET /api/inventory/extensions`
+- `GET /api/inventory/categories`
+- `GET /api/inventory/status`
+
+O corpo de `/api/inventory/save` é o modelo `Inventory` completo produzido pelo Builder.
+
+## Parser HTML — ET-010
+
+BeautifulSoup 4 com html.parser extrai metadados e referências de .htm, .html e .asp. A fonte é exclusivamente o Inventory SQLite; não ocorre novo scan. ASP e JavaScript nunca são executados, recursos externos nunca são acessados e o HTML completo não é persistido.
+
+Encodings são tentados nesta ordem: BOM, charset declarado, UTF-8, CP1252 e Latin-1. Caminhos relativos, ../, raiz do site, barras Windows, URL encoding, query string e fragmento são normalizados antes da consulta ao Inventory.
+
+As tabelas são html_parse_runs, html_pages, html_headings, html_image_references, html_link_references e html_parse_errors, com índices para execução, página, item do Inventory, caminho e status. A substituição é transacional e preserva o Inventory.
+
+Endpoints: POST /api/html-parser/parse; GET /api/html-parser/status; GET /api/html-parser/summary; GET /api/html-parser/pages; GET /api/html-parser/pages/{page_id}; GET /api/html-parser/missing-references.
+
+O processamento é sequencial e síncrono. Falhas por página são registradas sem interromper as demais; falhas fatais de persistência provocam rollback.

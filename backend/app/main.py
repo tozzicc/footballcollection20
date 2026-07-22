@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.api.routes.health import router as health_router
+from app.api.routes.html_parser import router as html_parser_router
 from app.api.routes.inventory import router as inventory_router
 from app.api.routes.scanner import router as scanner_router
 from app.api.routes.workspace import router as workspace_router
@@ -19,6 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(health_router, prefix="/api")
+app.include_router(html_parser_router, prefix="/api")
 app.include_router(inventory_router, prefix="/api")
 app.include_router(workspace_router, prefix="/api")
 app.include_router(scanner_router, prefix="/api")

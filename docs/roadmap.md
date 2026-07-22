@@ -4,18 +4,24 @@
 
 - ET-001 a ET-007D — fundações, Workspace e Scanner.
 - ET-008 — Inventory Builder.
+- ET-009 — Inventory Repository e persistência SQLite.
+- ET-010 — Parser HTML do acervo legado.
 
-## Arquitetura após a ET-008
+## Arquitetura após a ET-010
 
-`Workspace → Workspace Reader → Scanner → Inventory Builder → módulos consumidores`
+`Workspace → Workspace Reader → Scanner → Inventory Builder → Inventory Persistence Service → Inventory Repository → SQLite`
 
-O Scanner é o único módulo autorizado a percorrer o disco. O Inventory passa a ser a fonte estruturada que módulos futuros deverão consumir.
+O Scanner continua como único módulo autorizado a percorrer o disco recursivamente. O Parser abre somente as páginas já registradas no Inventory e nunca altera o Workspace.
 
-## Próxima etapa — ET-009
+## Próxima etapa — ET-011
 
-Pendências deliberadamente mantidas fora da ET-008:
+Pendências deliberadamente mantidas fora da ET-010:
 
-- definir persistência do Inventory;
-- integrar os próximos consumidores ao Inventory;
-- definir processamento especializado de conteúdo conforme a especificação da ET-009;
-- manter fora de escopo até autorização: catálogo real, hashes, duplicidades, parsers e exportações.
+- geração de catálogo HTML;
+- parser de imagens;
+- hashes e detecção de duplicidades;
+- correção automática de links;
+- thumbnails;
+- sincronização incremental;
+- exportações;
+- Dashboard consumindo o banco.
