@@ -21,3 +21,4 @@ const MissingReferencesTable = ({ value, offset, onOffset }: Props) => (
   </SectionCard>
 )
 export default MissingReferencesTable
+

@@ -19,3 +19,4 @@ const HtmlParserPageDetails = ({ value, onClose }: { value: HtmlPageDetails; onC
   </div>
 )
 export default HtmlParserPageDetails
+

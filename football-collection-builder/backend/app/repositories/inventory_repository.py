@@ -144,6 +144,21 @@ class InventoryRepository:
             readable=bool(row["readable"]),
         ) for row in rows]
 
+    def get_images(self) -> list[InventoryItem]:
+        self.create_schema()
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """SELECT * FROM inventory_items WHERE category = 'images'
+                   AND lower(extension) IN ('.jpg','.jpeg','.png','.gif','.bmp','.webp','.tif','.tiff','.svg')
+                   ORDER BY relative_path"""
+            ).fetchall()
+        return [InventoryItem(
+            id=row["id"], relativePath=row["relative_path"], absolutePath=row["absolute_path"],
+            directory=row["directory"], filename=row["filename"], extension=row["extension"],
+            category=row["category"], size=row["size"], createdAt=row["created_at"],
+            modifiedAt=row["modified_at"], isDirectory=bool(row["is_directory"]), readable=bool(row["readable"]),
+        ) for row in rows]
+
     def get_workspace_path(self) -> str | None:
         self.create_schema()
         with self.database.connect() as connection:

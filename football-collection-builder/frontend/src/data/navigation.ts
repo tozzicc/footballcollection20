@@ -6,6 +6,7 @@ const navigation: NavigationItem[] = [
   { id: 'scanner', label: 'Scanner', path: '/scanner', description: 'Leitura e análise do acervo' },
   { id: 'inventory', label: 'Inventory', path: '/inventory', description: 'Estrutura tipada do conteúdo analisado' },
   { id: 'html-parser', label: 'Parser HTML', path: '/parser-html', description: 'Metadados e referências das páginas legadas' },
+  { id: 'image-parser', label: 'Parser de Imagens', path: '/parser-imagens', description: 'Metadados técnicos e auditoria das imagens' },
   { id: 'catalog', label: 'Catálogo', path: '/catalogo', description: 'Consulta de países, equipes e imagens' },
   { id: 'reports', label: 'Relatórios', path: '/relatorios', description: 'Integridade, duplicidades e arquivos órfãos' },
   { id: 'exports', label: 'Exportações', path: '/exportacoes', description: 'Geração de JSON e pacotes de exportação' },

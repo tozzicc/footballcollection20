@@ -1,5 +1,19 @@
 # Changelog
 
+## ET-011 — Image Parser
+
+- Auditoria somente leitura de JPEG, PNG, GIF, BMP, WebP, TIFF e SVG com Pillow.
+- Metadados técnicos, validação, animação, dimensões, DPI e relação com referências HTML persistidos em SQLite.
+- Oito endpoints e página `/parser-imagens` com resumo, filtros, paginação e detalhes.
+- Consultas de imagens não referenciadas, imagens inválidas e referências quebradas.
+
+## ET-010A — Integração frontend do Parser HTML
+
+- Placeholder de `/parser-html` substituído pela interface funcional.
+- Status, execução, atualização, resumo, páginas paginadas, detalhes e referências ausentes integrados aos seis endpoints existentes.
+- Timeout de até dez minutos aplicado somente à execução do parser.
+- Estados sem Inventory, sem execução anterior, carregamento e erros tratados na página.
+
 ## ET-010 — Parser HTML do acervo legado
 
 - BeautifulSoup 4 adicionada com html.parser, sem lxml.

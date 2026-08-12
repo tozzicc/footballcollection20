@@ -27,3 +27,4 @@ const HtmlParserPagesTable = ({ value, search, offset, onSearch, onOffset, onSel
   </SectionCard>
 )
 export default HtmlParserPagesTable
+

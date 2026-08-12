@@ -135,3 +135,4 @@ def test_inventory_validation(tmp_path: Path):
     service = service_for(tmp_path, [item(tmp_path, "index.html", "p")])
     with pytest.raises(ValueError, match="coincide"):
         service.parse(HtmlParseRequest(workspacePath=str(tmp_path / "other")))
+

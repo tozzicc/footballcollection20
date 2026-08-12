@@ -11,3 +11,4 @@ const HtmlParserActions = ({ disabled, isParsing, onRun, onRefresh }: Props) => 
   </div>
 )
 export default HtmlParserActions
+

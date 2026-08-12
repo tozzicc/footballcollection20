@@ -5,6 +5,7 @@ import WorkspacePage from '../pages/WorkspacePage'
 import ScannerPage from '../pages/ScannerPage'
 import InventoryPage from '../pages/InventoryPage'
 import HtmlParserPage from '../pages/HtmlParserPage'
+import ImageParserPage from '../pages/ImageParserPage'
 import CatalogPage from '../pages/CatalogPage'
 import ReportsPage from '../pages/ReportsPage'
 import ExportsPage from '../pages/ExportsPage'
@@ -22,6 +23,7 @@ const AppRouter = () => (
         <Route path="scanner" element={<ScannerPage />} />
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="parser-html" element={<HtmlParserPage />} />
+        <Route path="parser-imagens" element={<ImageParserPage />} />
         <Route path="catalogo" element={<CatalogPage />} />
         <Route path="relatorios" element={<ReportsPage />} />
         <Route path="exportacoes" element={<ExportsPage />} />

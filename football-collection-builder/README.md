@@ -180,6 +180,16 @@ A leitura tenta BOM, charset declarado, UTF-8, CP1252 e Latin-1. Título, idioma
 Endpoints: POST /api/html-parser/parse, GET /api/html-parser/status, GET /api/html-parser/summary, GET /api/html-parser/pages, GET /api/html-parser/pages/{id} e GET /api/html-parser/missing-references. A interface está em /parser-html.
 
 O parser é sequencial, síncrono e somente leitura: não corrige links, baixa recursos, executa ASP/JavaScript, cria arquivos ou altera o Workspace.
+
+A ET-010A concluiu a interface em `/parser-html`, incluindo status, execução e atualização, resumo persistido, paginação e busca de páginas, detalhes e referências ausentes.
+
+## Image Parser — ET-011
+
+O Image Parser consulta exclusivamente as imagens do Inventory persistido e usa Pillow em modo somente leitura para extrair formato, dimensões, proporção, modo, alpha, animação, frames e DPI. SVG é validado sem rasterização. Resultados, erros e execuções são persistidos no SQLite e cruzados com as referências produzidas pelo Parser HTML, sem reler páginas.
+
+Endpoints: `POST /api/image-parser/parse`, `GET /api/image-parser/status`, `GET /api/image-parser/summary`, `GET /api/image-parser/images`, `GET /api/image-parser/images/{id}`, `GET /api/image-parser/orphans`, `GET /api/image-parser/invalid` e `GET /api/image-parser/broken-references`. A interface está em `/parser-imagens`.
+
+O módulo não gera previews ou thumbnails, não extrai EXIF pessoal e não altera, converte, renomeia ou remove arquivos do Workspace.
 ## Documentação adicional
 
 - Design system: `docs/design-system.md`

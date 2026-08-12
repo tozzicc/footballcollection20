@@ -156,3 +156,9 @@ As tabelas são html_parse_runs, html_pages, html_headings, html_image_reference
 Endpoints: POST /api/html-parser/parse; GET /api/html-parser/status; GET /api/html-parser/summary; GET /api/html-parser/pages; GET /api/html-parser/pages/{page_id}; GET /api/html-parser/missing-references.
 
 O processamento é sequencial e síncrono. Falhas por página são registradas sem interromper as demais; falhas fatais de persistência provocam rollback.
+
+## Image Parser — ET-011
+
+O `ImageParserService` consulta imagens no Inventory, lê metadados com Pillow e persiste resultados via `ImageParserRepository`. SVG é tratado sem Pillow. O cruzamento com HTML reutiliza `referenced_inventory_item_id` e referências ausentes já normalizadas pelo Parser HTML.
+
+As tabelas `image_parse_runs`, `image_metadata` e `image_parse_errors` armazenam execuções, metadados e falhas. Os endpoints ficam sob `/api/image-parser`: `parse`, `status`, `summary`, `images`, `images/{id}`, `orphans`, `invalid` e `broken-references`.

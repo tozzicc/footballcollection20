@@ -214,3 +214,4 @@ class HtmlParserRepository:
                 resolvedRelativePath=x["resolved_relative_path"], status=x["status"],
             ) for x in rows], total=total, limit=limit, offset=offset,
         )
+

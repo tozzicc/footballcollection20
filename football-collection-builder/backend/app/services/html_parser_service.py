@@ -222,3 +222,4 @@ class HtmlParserService:
             resolvedRelativePath=relative, existsInInventory=found is not None,
             referencedInventoryItemId=found.id if found else None, status=status,
         )
+

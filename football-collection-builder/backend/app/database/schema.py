@@ -116,6 +116,40 @@ CREATE INDEX IF NOT EXISTS idx_html_links_page_id ON html_link_references(page_i
 CREATE INDEX IF NOT EXISTS idx_html_links_inventory_item_id ON html_link_references(referenced_inventory_item_id);
 CREATE INDEX IF NOT EXISTS idx_html_links_status ON html_link_references(status);
 CREATE INDEX IF NOT EXISTS idx_html_errors_run_id ON html_parse_errors(run_id);
+
+CREATE TABLE IF NOT EXISTS image_parse_runs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, workspace_path TEXT NOT NULL, started_at TEXT NOT NULL,
+ finished_at TEXT, duration_ms INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL,
+ total_images INTEGER NOT NULL DEFAULT 0, valid_images INTEGER NOT NULL DEFAULT 0,
+ invalid_images INTEGER NOT NULL DEFAULT 0, referenced_images INTEGER NOT NULL DEFAULT 0,
+ orphan_images INTEGER NOT NULL DEFAULT 0, broken_references INTEGER NOT NULL DEFAULT 0,
+ html_audit_available INTEGER NOT NULL DEFAULT 0, total_size INTEGER NOT NULL DEFAULT 0,
+ average_width REAL, average_height REAL, max_width INTEGER, max_height INTEGER, message TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS image_metadata (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, inventory_item_id TEXT NOT NULL,
+ relative_path TEXT NOT NULL, absolute_path TEXT NOT NULL, filename TEXT NOT NULL, extension TEXT NOT NULL,
+ format TEXT, file_size INTEGER NOT NULL, width INTEGER, height INTEGER, aspect_ratio REAL, mode TEXT,
+ has_alpha INTEGER NOT NULL, animated INTEGER NOT NULL, frame_count INTEGER NOT NULL, dpi_x REAL, dpi_y REAL,
+ created_at TEXT, modified_at TEXT, readable INTEGER NOT NULL, valid_image INTEGER NOT NULL,
+ validation_status TEXT NOT NULL, validation_message TEXT NOT NULL, reference_count INTEGER NOT NULL DEFAULT 0,
+ reference_status TEXT NOT NULL, FOREIGN KEY(run_id) REFERENCES image_parse_runs(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS image_parse_errors (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, inventory_item_id TEXT,
+ relative_path TEXT NOT NULL, error_type TEXT NOT NULL, message TEXT NOT NULL,
+ FOREIGN KEY(run_id) REFERENCES image_parse_runs(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_image_metadata_run_id ON image_metadata(run_id);
+CREATE INDEX IF NOT EXISTS idx_image_metadata_inventory_item_id ON image_metadata(inventory_item_id);
+CREATE INDEX IF NOT EXISTS idx_image_metadata_relative_path ON image_metadata(relative_path);
+CREATE INDEX IF NOT EXISTS idx_image_metadata_extension ON image_metadata(extension);
+CREATE INDEX IF NOT EXISTS idx_image_metadata_format ON image_metadata(format);
+CREATE INDEX IF NOT EXISTS idx_image_metadata_valid_image ON image_metadata(valid_image);
+CREATE INDEX IF NOT EXISTS idx_image_metadata_validation_status ON image_metadata(validation_status);
+CREATE INDEX IF NOT EXISTS idx_image_metadata_width ON image_metadata(width);
+CREATE INDEX IF NOT EXISTS idx_image_metadata_height ON image_metadata(height);
+CREATE INDEX IF NOT EXISTS idx_image_errors_run_id ON image_parse_errors(run_id);
 """
 
 TABLES = (
@@ -131,3 +165,5 @@ HTML_PARSER_TABLES = (
     "html_parse_runs", "html_pages", "html_headings", "html_image_references",
     "html_link_references", "html_parse_errors",
 )
+
+IMAGE_PARSER_TABLES = ("image_parse_runs", "image_metadata", "image_parse_errors")

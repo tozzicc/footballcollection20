@@ -6,6 +6,8 @@
 - ET-008 — Inventory Builder.
 - ET-009 — Inventory Repository e persistência SQLite.
 - ET-010 — Parser HTML do acervo legado.
+- ET-010A — integração frontend do Parser HTML concluída.
+- ET-011 — Image Parser e auditoria física implementados; validação no acervo real depende da disponibilidade do Workspace persistido.
 
 ## Arquitetura após a ET-010
 

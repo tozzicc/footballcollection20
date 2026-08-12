@@ -19,3 +19,4 @@ export const getHtmlPages = (limit: number, offset: number, search?: string) =>
 export const getHtmlPage = (id: number) => client.get<HtmlPageDetails>(`/api/html-parser/pages/${id}`)
 export const getMissingReferences = (limit: number, offset: number, referenceType?: 'image' | 'link') =>
   client.get<MissingReferencesResponse>(`/api/html-parser/missing-references?${query({ limit, offset, referenceType })}`)
+

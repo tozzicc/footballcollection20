@@ -12,3 +12,4 @@ const HtmlParserStatusCard = ({ value }: { value: HtmlParserStatus }) => (
   </SectionCard>
 )
 export default HtmlParserStatusCard
+
