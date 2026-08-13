@@ -202,3 +202,18 @@ O módulo não gera previews ou thumbnails, não extrai EXIF pessoal e não alte
 ## Autor
 
 Football Collection Builder Team
+# Catalog Builder (ET-012)
+
+O módulo **Catálogo** transforma exclusivamente os dados persistidos do Inventory, Parser HTML e Parser de Imagens em `Country/Region → Team → Collection → Item → Images`. O build não relê o Workspace e não executa etapas anteriores. Inferências preservam valor original, origem e confiança; ambiguidades ficam em Issues. Pastas `MM_AA` e `MM_AA_lote` são períodos de inclusão (anos 2000), nunca temporadas. Consulte a página `/catalogo` ou os endpoints `/api/catalog/*`.
+
+## Qualidade do Catálogo (ET-013)
+
+`/qualidade-catalogo` analisa issues já persistidos, agrupa padrões e registra avaliações e resoluções rastreáveis sem reler ou alterar o acervo. As regras CQ001–CQ003 exigem evidência estrutural persistida e inequívoca; os demais casos ficam `review_required`.
+
+O Quality Score é apenas um indicador técnico: `100 × (0,75 × entidades classificadas / entidades totais + 0,25 × (1 − pendências / (entidades totais + pendências)))`, limitado a 0–100.
+
+## Revisão Manual Assistida (ET-014)
+
+`/revisao-catalogo` oferece fila, candidatos pesquisáveis, preview sem persistência, resolve, acknowledge, defer, reversão lógica e histórico. Decisões formam overlays; entidades-base e `originalName` nunca são alterados. O autor técnico é `local_user`.
+
+Identidade entre rebuilds usa SHA-256 de composições canônicas persistidas: country=`tipo+caminho`; team=`tipo+stableKey(country)+caminho`; collection=`tipo+stableKey(team)+caminho`; item=`tipo+stableKey(team/collection)+relativePath da página`; issue=`tipo do issue+stableKey(entity)+relativePath+assinatura da mensagem+ordinal determinístico`. Separadores e caixa são canonizados. IDs, timestamps, slugs isolados e conteúdo físico não participam.

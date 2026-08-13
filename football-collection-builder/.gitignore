@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 *.js
+!frontend/eslint.config.js
 *.map
 
 # Logs

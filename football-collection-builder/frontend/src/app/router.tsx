@@ -7,6 +7,8 @@ import InventoryPage from '../pages/InventoryPage'
 import HtmlParserPage from '../pages/HtmlParserPage'
 import ImageParserPage from '../pages/ImageParserPage'
 import CatalogPage from '../pages/CatalogPage'
+import CatalogQualityPage from '../pages/CatalogQualityPage'
+import CatalogReviewPage from '../pages/CatalogReviewPage'
 import ReportsPage from '../pages/ReportsPage'
 import ExportsPage from '../pages/ExportsPage'
 import LogsPage from '../pages/LogsPage'
@@ -25,6 +27,8 @@ const AppRouter = () => (
         <Route path="parser-html" element={<HtmlParserPage />} />
         <Route path="parser-imagens" element={<ImageParserPage />} />
         <Route path="catalogo" element={<CatalogPage />} />
+        <Route path="qualidade-catalogo" element={<CatalogQualityPage />} />
+        <Route path="revisao-catalogo" element={<CatalogReviewPage />} />
         <Route path="relatorios" element={<ReportsPage />} />
         <Route path="exportacoes" element={<ExportsPage />} />
         <Route path="logs" element={<LogsPage />} />

@@ -44,3 +44,21 @@
 - Página Inventory, serviço, hook, componentes e navegação adicionados ao frontend.
 - Tabelas limitadas a 50 registros, responsivas e com rolagem horizontal interna.
 - Testes de Scanner e Inventory adicionados; Dashboard mantido com mocks.
+# ET-012 — Catalog Builder
+
+- Catálogo transacional persistido em oito tabelas, com inferências e issues rastreáveis.
+- API completa de status, build, resumo, países, equipes, items e issues.
+- Página Catálogo funcional com busca, filtro, paginação e detalhes.
+- Reconhecimento explícito de `MM_AA[_lote]` como período de inclusão.
+
+## ET-013 — Qualidade do Catálogo
+
+- Quality runs, assessments e resolutions transacionais.
+- Regras determinísticas CQ001–CQ003, agrupamentos, score, filtros e detalhes.
+- Página `/qualidade-catalogo`, sem edição manual ou alteração do acervo.
+
+## ET-014 — Revisão Manual Assistida
+
+- Stable keys para country, team, collection, item e issue, com reconciliação segura entre builds.
+- Fila manual com preview, decisões tipadas, candidatos, overlay, reversão e histórico imutável.
+- Página `/revisao-catalogo` e API completa de revisão.

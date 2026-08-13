@@ -162,3 +162,20 @@ O processamento é sequencial e síncrono. Falhas por página são registradas s
 O `ImageParserService` consulta imagens no Inventory, lê metadados com Pillow e persiste resultados via `ImageParserRepository`. SVG é tratado sem Pillow. O cruzamento com HTML reutiliza `referenced_inventory_item_id` e referências ausentes já normalizadas pelo Parser HTML.
 
 As tabelas `image_parse_runs`, `image_metadata` e `image_parse_errors` armazenam execuções, metadados e falhas. Os endpoints ficam sob `/api/image-parser`: `parse`, `status`, `summary`, `images`, `images/{id}`, `orphans`, `invalid` e `broken-references`.
+# Catalog Builder
+
+`POST /api/catalog/build` (corpo `{"replacePrevious": true}`) cria uma versão transacional a partir das tabelas já persistidas. Endpoints de leitura: `/api/catalog/status`, `/summary`, `/countries`, `/teams`, `/teams/{id}`, `/items`, `/items/{id}` e `/issues`. Países e equipes são inferidos somente sob a estrutura histórica `paises`; agrupamentos em `camisas/{país}/{equipe}` tornam-se collections. `MM_AA[_lote]` é classificado como `inclusion_period`. O serviço contém regras; o repositório contém schema, transações, filtros, busca e paginação.
+
+Confidence aceita `confirmed`, `inferred` ou `unknown`; source aceita `folder`, `html`, `inventory` ou `manual` (reservado). Não há edição, merge, OCR, IA, deduplicação ou identificação de temporada nesta etapa. O Workspace original é somente leitura.
+
+## Catalog Quality
+
+`POST /api/catalog/quality/analyze` analisa somente o último catálogo persistido. Status, summary, issues, detalhes, resolutions e groups ficam sob `/api/catalog/quality`. Cada issue recebe `auto_resolved` ou `review_required`; `open` e `ignored` permanecem preparados semanticamente. CQ001 valida períodos `MM_AA[_lote]` já classificados; CQ002 valida país já não desconhecido; CQ003 valida equipe ligada a país estrutural não desconhecido. Nenhuma regra altera `originalName`, funde ou exclui entidades.
+
+Score: `100 × (75% da proporção de entidades classificadas + 25% do fator 1 − pendências/(entidades + pendências))`, limitado a 0–100. Ele não representa percentual de correção.
+
+## Manual Catalog Review
+
+Endpoints `/api/catalog/review` fornecem status, summary, fila, detalhe, candidates, preview, resolve, acknowledge, defer, revert e history. Códigos: `MR_ASSIGN_COUNTRY`, `MR_ASSIGN_TEAM`, `MR_ASSIGN_COLLECTION`, `MR_CLASSIFY_FOLDER`, `MR_CONFIRM_MISSING_IMAGE`, `MR_ACKNOWLEDGE` e `MR_DEFER`. Preview valida sem escrever; resolve/revert são transacionais; reversão nunca apaga histórico.
+
+`catalog_stable_keys` separa identidade lógica de IDs AUTOINCREMENT. A composição está documentada no README principal. Rebuild reconcilia por igualdade exata: uma correspondência=`matched`, nenhuma=`orphaned`, múltiplas=`conflict`; somente `matched` pode alimentar overlay. O valor original permanece intacto.

@@ -1,0 +1,10 @@
+export type CatalogRun={id:number;startedAt:string;finishedAt:string|null;durationMs:number;status:string;countries:number;teams:number;collections:number;items:number;imageRelations:number;issues:number;message:string}
+export type CatalogStatus={inventoryAvailable:boolean;htmlParserAvailable:boolean;imageParserAvailable:boolean;catalogAvailable:boolean;lastBuild:CatalogRun|null;status:string}
+export type CatalogSummary={countries:number;teams:number;collections:number;items:number;imageRelations:number;unknownCountries:number;unknownTeams:number;issues:number;duration:number;builtAt:string|null}
+export type CatalogCountry={id:number;originalName:string;normalizedName:string;slug:string;relativePath:string;confidence:string;source:string}
+export type CatalogTeam={id:number;countryId:number|null;originalName:string;countryName:string|null;relativePath:string;confidence:string;source:string;collectionCount:number;itemCount:number;imageCount:number}
+export type CatalogItem={id:number;teamId:number;collectionId:number|null;sourcePageId:number|null;originalTitle:string;title:string;relativePath:string;itemType:string;confidence:string;collectionName:string|null;imageCount:number}
+export type CatalogIssue={id:number;issueType:string;severity:string;entityType:string;entityId:number|null;relativePath:string|null;message:string}
+export type CatalogPage<T>={items:T[];total:number;limit:number;offset:number}
+export type TeamDetail={team:CatalogTeam;collections:Array<Record<string,unknown>>;items:CatalogItem[];imageCount:number;inferences:Array<Record<string,unknown>>;issues:CatalogIssue[]}
+export type ItemDetail={item:CatalogItem&{teamName:string;countryName:string|null;pageTitle:string|null};images:Array<Record<string,unknown>>;imageCount:number;inferences:Array<Record<string,unknown>>;issues:CatalogIssue[]}

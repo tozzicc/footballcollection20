@@ -27,3 +27,14 @@ Pendências deliberadamente mantidas fora da ET-010:
 - sincronização incremental;
 - exportações;
 - Dashboard consumindo o banco.
+# ET-012 — concluída
+
+Catalog Builder inicial: estrutura lógica, relações com imagens, inferências, issues, API e interface. Permanecem fora do escopo: edição manual, merge/deduplicação, identificação visual e semântica de camisas, thumbnails, exportação e sincronização incremental.
+
+## ET-013 — concluída
+
+Camada de qualidade, regras seguras, fila de revisão, agrupamentos, resoluções rastreáveis e indicador técnico. Edição/ignore manual, merges e correções aproximadas seguem fora do escopo.
+
+## ET-014 — concluída
+
+Revisão manual assistida por overlays e stable keys reconciliáveis. Criação livre de entidades, merge, edição do acervo e aplicação global dos overlays no CatalogPage permanecem fora do escopo.

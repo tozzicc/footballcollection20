@@ -8,6 +8,8 @@ const navigation: NavigationItem[] = [
   { id: 'html-parser', label: 'Parser HTML', path: '/parser-html', description: 'Metadados e referências das páginas legadas' },
   { id: 'image-parser', label: 'Parser de Imagens', path: '/parser-imagens', description: 'Metadados técnicos e auditoria das imagens' },
   { id: 'catalog', label: 'Catálogo', path: '/catalogo', description: 'Consulta de países, equipes e imagens' },
+  { id: 'catalog-quality', label: 'Qualidade do Catálogo', path: '/qualidade-catalogo', description: 'Consistência, ambiguidades e revisão' },
+  { id: 'catalog-review', label: 'Revisão do Catálogo', path: '/revisao-catalogo', description: 'Decisões manuais assistidas e rastreáveis' },
   { id: 'reports', label: 'Relatórios', path: '/relatorios', description: 'Integridade, duplicidades e arquivos órfãos' },
   { id: 'exports', label: 'Exportações', path: '/exportacoes', description: 'Geração de JSON e pacotes de exportação' },
   { id: 'logs', label: 'Logs', path: '/logs', description: 'Histórico de execuções do Builder' },
