@@ -64,6 +64,18 @@ class HtmlImageReference(BaseModel):
     status: HtmlReferenceStatus
 
 
+class HtmlImageContext(BaseModel):
+    domOrder: int
+    referenceOriginal: str
+    resolvedRelativePath: str | None = None
+    containerType: str | None = None
+    contextText: str | None = None
+    captionText: str | None = None
+    extractionRule: str
+    confidence: str
+    status: Literal["matched", "ambiguous", "no_description", "unsupported_structure"]
+
+
 class HtmlLinkReference(BaseModel):
     hrefOriginal: str
     hrefNormalized: str
@@ -102,6 +114,7 @@ class HtmlPageResult(HtmlPageMetadata):
     id: int | None = None
     headings: list[HtmlHeading] = Field(default_factory=list)
     imageReferences: list[HtmlImageReference] = Field(default_factory=list)
+    imageContexts: list[HtmlImageContext] = Field(default_factory=list)
     linkReferences: list[HtmlLinkReference] = Field(default_factory=list)
 
 

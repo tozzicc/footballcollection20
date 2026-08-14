@@ -12,6 +12,9 @@ from app.api.routes.workspace import router as workspace_router
 from app.api.routes.catalog import router as catalog_router
 from app.api.routes.catalog_quality import router as catalog_quality_router
 from app.api.routes.catalog_review import router as catalog_review_router
+from app.api.routes.catalog_normalization import router as catalog_normalization_router
+from app.api.routes.catalog_view import router as catalog_view_router
+from app.api.routes.media import router as media_router
 
 app = FastAPI(title="Football Collection Builder API", version="0.1.0-alpha")
 
@@ -32,6 +35,9 @@ app.include_router(scanner_router, prefix="/api")
 app.include_router(catalog_router, prefix="/api")
 app.include_router(catalog_quality_router, prefix="/api")
 app.include_router(catalog_review_router, prefix="/api")
+app.include_router(catalog_normalization_router, prefix="/api")
+app.include_router(catalog_view_router, prefix="/api")
+app.include_router(media_router, prefix="/api")
 
 
 @app.exception_handler(Exception)

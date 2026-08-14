@@ -1,5 +1,23 @@
 # Football Collection Builder
 
+## Correção funcional — ET-018A
+
+As URLs relativas da Media Layer agora são resolvidas centralmente com `VITE_API_BASE_URL`, evitando que o navegador solicite imagens ao servidor Vite. A camada editorial pública separa temporada de período interno de inclusão: `MM_AA` e `MM_AA_lote` nunca são apresentados como temporada ou título.
+
+O Parser HTML dirigido persiste contexto estrutural por imagem em `html_image_contexts`. Apenas texto ligado por estruturas DOM observadas recebe status `matched`; blocos compartilhados permanecem `ambiguous`. O View Model 1.1.0 expõe `seasonLabel` e `description` quando seguros. `competition` permanece nulo quando o texto associado não permite uma separação sem interpretação editorial.
+
+## Public Site — ET-018
+
+A primeira versão visual navegável do Football Collection 2.0 está disponível em `/site`. Ela usa um `PublicLayout` próprio, separado do Builder, e consome exclusivamente a Public API e as URLs seguras da Media Layer. Inclui Home, países, equipes, collections, items, galeria, busca, últimas inclusões, breadcrumbs, estados de loading/empty/error e 404 pública.
+
+As rotas de item preservam os dois formatos inequívocos da ET-016 sob o namespace de desenvolvimento `/site`. O layout é responsivo para desktop, tablet e mobile, possui menu colapsável, foco visível, HTML semântico e fallback de imagem. Esta é uma primeira proposta visual: não representa o layout final aprovado nem uma versão pronta para produção.
+
+## Media Layer — ET-017
+
+A rota administrativa `/midia-site` prepara e audita a entrega segura das imagens originais. O build consome somente o último View Model e os metadados persistidos pelo Parser de Imagens, não cria cópias ou thumbnails e não altera o Workspace. Cada asset recebe `mediaKey` SHA-256 determinístico do caminho relativo normalizado.
+
+O endpoint `/api/media/assets/{mediaKey}` resolve o arquivo dentro do Workspace em modo somente leitura, bloqueia traversal e escapes por symlink, valida extensão e contenção, e entrega JPEG, PNG, GIF, BMP, WebP e TIFF com MIME explícito, ETag, Last-Modified e cache público de uma hora. SVG possui metadata, mas é bloqueado para exibição inline. Caminhos físicos, stable keys e IDs SQL não são expostos.
+
 ## Visão geral
 
 Football Collection Builder é uma aplicação web para organizar e analisar acervos digitais relacionados a futebol. Ao final da ET-007D, o projeto possui interface navegável, configuração local de Workspace e um Scanner integrado ao backend para leitura recursiva do acervo.
@@ -217,3 +235,15 @@ O Quality Score é apenas um indicador técnico: `100 × (0,75 × entidades clas
 `/revisao-catalogo` oferece fila, candidatos pesquisáveis, preview sem persistência, resolve, acknowledge, defer, reversão lógica e histórico. Decisões formam overlays; entidades-base e `originalName` nunca são alterados. O autor técnico é `local_user`.
 
 Identidade entre rebuilds usa SHA-256 de composições canônicas persistidas: country=`tipo+caminho`; team=`tipo+stableKey(country)+caminho`; collection=`tipo+stableKey(team)+caminho`; item=`tipo+stableKey(team/collection)+relativePath da página`; issue=`tipo do issue+stableKey(entity)+relativePath+assinatura da mensagem+ordinal determinístico`. Separadores e caixa são canonizados. IDs, timestamps, slugs isolados e conteúdo físico não participam.
+
+## Normalização do Catálogo — ET-015
+
+A rota `/normalizacao-catalogo` cria uma camada editorial histórica e não destrutiva sobre o último Catalog Build. Countries/Regions, Teams, Collections e Items preservam `stableKey`, nomes/títulos e caminhos originais. Nenhum arquivo do Workspace é lido ou alterado.
+
+As regras versionadas `CN001`, `TM001`, `CL001`, `IT001`, `SL001`, `SL002` e `MR001` tratam whitespace/Unicode/HTML entities, casing uppercase seguro, períodos de inclusão, slugs e overlays manuais reconciliados. Os estados são `normalized`, `unchanged`, `review_required` e `overridden`; as fontes são `original`, `deterministic_rule` e `manual_review`. Colisões de slug recebem seis caracteres do SHA-256 da `stableKey` dentro do escopo lógico.
+
+## Catalog View Model — ET-016
+
+A rota administrativa `/modelo-publico` inspeciona o contrato de apresentação preparado para o futuro Football Collection 2.0. O View Model consome somente o último run completo da normalização, possui schema `1.0.0`, runs históricos e Public API paginada sob `/api/public/catalog`.
+
+Items com collection usam `/items/{country}/teams/{team}/collections/{collection}/{item}`; items sem collection usam `/items/{country}/teams/{team}/items/{item}`. As rotas e breadcrumbs são persistidos, não expõem stableKeys/IDs SQL e preservam os slugs da ET-015. Mídia é apenas referência lógica; nenhum arquivo físico é servido.

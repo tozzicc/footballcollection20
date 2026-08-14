@@ -1,0 +1,9 @@
+import { Link } from 'react-router-dom'
+import type { PublicCollection,PublicCountry,PublicItem,PublicTeam } from '../types'
+import PublicMediaImage from './PublicMediaImage'
+const label=(x:string)=>x.replaceAll('_',' ')
+const itemPath=(item:PublicItem)=>`/site${item.publicRoute}`
+export function PublicCountryCard({item}:{item:PublicCountry}){return <Link className="public-card" to={`/site/paises/${item.slug}`}><PublicMediaImage media={item.primaryMedia} alt={item.name}/><div><p className="public-kicker">País / região</p><h3>{label(item.name)}</h3><p>{item.teamsCount} equipes · {item.itemsCount} itens</p></div></Link>}
+export function PublicTeamCard({item}:{item:PublicTeam}){return <Link className="public-card" to={`/site/paises/${item.countrySlug}/equipes/${item.slug}`}><PublicMediaImage media={item.primaryMedia} alt={item.name}/><div><p className="public-kicker">{label(item.countrySlug)}</p><h3>{label(item.name)}</h3><p>{item.collectionsCount} coleções · {item.itemsCount} itens</p></div></Link>}
+export function PublicCollectionCard({item}:{item:PublicCollection}){return <Link className="public-card" to={`/site/paises/${item.countrySlug}/equipes/${item.teamSlug}/collections/${item.slug}`}><PublicMediaImage media={item.primaryMedia} alt={item.name}/><div><p className="public-kicker">{label(item.teamSlug)}</p><h3>Camisas da equipe</h3><p>{item.itemsCount} itens · {item.imagesCount} imagens</p></div></Link>}
+export function PublicItemCard({item}:{item:PublicItem}){return <Link className="public-card" to={itemPath(item)}><PublicMediaImage media={item.primaryMedia} alt={item.title}/><div><p className="public-kicker">{label(item.teamSlug)}</p><h3>{item.seasonLabel||item.title}</h3>{item.competition&&<p>{item.competition}</p>}{item.description&&<p className="public-card-description">{item.description}</p>}<p>{item.imagesCount} imagens</p></div></Link>}

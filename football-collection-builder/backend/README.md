@@ -1,5 +1,17 @@
 # Backend do Football Collection Builder
 
+## ET-018A — contexto editorial seguro
+
+`html_image_contexts` registra ordem DOM, container, texto associado, regra HX001–HX004, confiança e status. HX001 cobre o padrão legado predominante de uma tabela com o grupo de fotos seguida por uma tabela textual; HX002/HX003 cobrem container único; HX004 bloqueia associação em blocos compartilhados. O parser não usa `text_preview` para essa relação e mantém o Workspace somente leitura.
+
+O View Model 1.1.0 acrescenta campos compatíveis de temporada e descrição. As regras SE001–SE005 aceitam anos e temporadas presentes em título/filename e rejeitam períodos internos de inclusão.
+
+## Media Layer (ET-017)
+
+`MediaService` cria runs históricos e transacionais nas tabelas `media_build_runs`, `media_assets` e `media_asset_relations`. A identidade pública é o SHA-256 do caminho relativo normalizado (Unicode NFC, barras POSIX e case-folding). A API oferece `POST /api/media/build`, `GET /api/media/status`, `/summary`, `/assets`, `/assets/{mediaKey}/metadata` e `/assets/{mediaKey}`.
+
+`MediaResolver` aceita somente chaves hexadecimais de 64 caracteres, rejeita caminhos absolutos, `..`, drive prefixes e escapes do Workspace após `resolve()`. A resposta binária usa MIME derivado do formato validado, ETag, Last-Modified e `Cache-Control: public, max-age=3600`. SVG não é servido inline (415); assets inválidos retornam 422 e ausentes ou inseguros retornam 404. Nenhuma rota retorna caminhos físicos.
+
 API Python construída com FastAPI. Ao final da ET-007D, o backend oferece health check, validação de Workspace e análise recursiva do acervo em modo somente leitura.
 
 ## Requisitos
@@ -179,3 +191,15 @@ Score: `100 × (75% da proporção de entidades classificadas + 25% do fator 1 �
 Endpoints `/api/catalog/review` fornecem status, summary, fila, detalhe, candidates, preview, resolve, acknowledge, defer, revert e history. Códigos: `MR_ASSIGN_COUNTRY`, `MR_ASSIGN_TEAM`, `MR_ASSIGN_COLLECTION`, `MR_CLASSIFY_FOLDER`, `MR_CONFIRM_MISSING_IMAGE`, `MR_ACKNOWLEDGE` e `MR_DEFER`. Preview valida sem escrever; resolve/revert são transacionais; reversão nunca apaga histórico.
 
 `catalog_stable_keys` separa identidade lógica de IDs AUTOINCREMENT. A composição está documentada no README principal. Rebuild reconcilia por igualdade exata: uma correspondência=`matched`, nenhuma=`orphaned`, múltiplas=`conflict`; somente `matched` pode alimentar overlay. O valor original permanece intacto.
+
+## Catalog Entity Normalization (ET-015)
+
+`CatalogNormalizationService` lê exclusivamente o último catálogo persistido e reviews ativos `resolved` + `matched`. As regras ficam centralizadas em `catalog_normalization_rules.py`; o repository mantém runs históricos, quatro conjuntos de entidades normalizadas e eventos em uma única transação.
+
+Endpoints: status, run, summary, coleções paginadas `countries`, `teams`, `collections`, `items`, detalhes por `stableKey` e events sob `/api/catalog/normalization`. Períodos `MM_AA`/`MM_AA_lote` reutilizam mês, ano e lote validados pelo Builder e nunca representam temporada.
+
+## Catalog View Model / Public API (ET-016)
+
+`CatalogViewService` deriva entidades públicas exclusivamente do último normalization run completo. `CatalogViewRepository` persiste histórico e atende countries, teams, collections, items, media, navigation, search e latest. `VIEW_SCHEMA_VERSION=1.0.0`.
+
+`ready` indica estrutura navegável, `review_required` preserva pendências da normalização e `unavailable` indica ausência de campos/relacionamentos mínimos. Primary Media prioriza `isPrimaryCandidate`, depois a primeira relação persistida válida; sem relação retorna `null`. A API nunca retorna `absolutePath`, `workspacePath`, stableKey ou IDs SQL.

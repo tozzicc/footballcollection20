@@ -7,7 +7,7 @@ from typing import Literal
 from app.database.database import DEFAULT_DATABASE_PATH, Database
 from app.database.schema import HTML_PARSER_TABLES, SCHEMA_SQL
 from app.models.html_parser import (
-    HtmlHeading, HtmlImageReference, HtmlLinkReference, HtmlMissingReference,
+    HtmlHeading, HtmlImageContext, HtmlImageReference, HtmlLinkReference, HtmlMissingReference,
     HtmlMissingReferencesResponse, HtmlPageDetails, HtmlPageListItem, HtmlPageResult,
     HtmlPagesResponse, HtmlParseError, HtmlParseRun, HtmlParseStatus, HtmlParseSummary,
 )
@@ -78,16 +78,18 @@ class HtmlParserRepository:
         return page_id
 
     def _save_references(self, connection: sqlite3.Connection, page_id: int, page: HtmlPageResult) -> None:
-        connection.executemany(
+        image_ids=[]
+        for x in page.imageReferences:
+            cursor=connection.execute(
             """INSERT INTO html_image_references(page_id,src_original,src_normalized,alt_text,
             title_text,width_declared,height_declared,is_external,resolved_relative_path,
             resolved_absolute_path,exists_in_inventory,referenced_inventory_item_id,status)
             VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            [(page_id, x.srcOriginal, x.srcNormalized, x.alt, x.title, x.widthDeclared,
+            (page_id, x.srcOriginal, x.srcNormalized, x.alt, x.title, x.widthDeclared,
               x.heightDeclared, int(x.isExternal), x.resolvedRelativePath, x.resolvedAbsolutePath,
-              int(x.existsInInventory), x.referencedInventoryItemId, x.status.value)
-             for x in page.imageReferences],
-        )
+              int(x.existsInInventory), x.referencedInventoryItemId, x.status.value))
+            image_ids.append(int(cursor.lastrowid))
+        connection.executemany("""INSERT INTO html_image_contexts(html_page_id,image_reference_id,reference_original,resolved_relative_path,dom_order,container_type,context_text,caption_text,extraction_rule,confidence,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,datetime('now'))""",[(page_id,image_ids[x.domOrder],x.referenceOriginal,x.resolvedRelativePath,x.domOrder,x.containerType,x.contextText,x.captionText,x.extractionRule,x.confidence,x.status) for x in page.imageContexts])
         connection.executemany(
             """INSERT INTO html_link_references(page_id,href_original,href_normalized,visible_text,
             title_text,is_external,is_anchor,is_mailto,is_javascript,resolved_relative_path,
@@ -154,6 +156,7 @@ class HtmlParserRepository:
             hs = connection.execute("SELECT * FROM html_headings WHERE page_id=? ORDER BY position", (page_id,)).fetchall()
             images = connection.execute("SELECT * FROM html_image_references WHERE page_id=? ORDER BY id", (page_id,)).fetchall()
             links = connection.execute("SELECT * FROM html_link_references WHERE page_id=? ORDER BY id", (page_id,)).fetchall()
+            contexts = connection.execute("SELECT * FROM html_image_contexts WHERE html_page_id=? ORDER BY dom_order", (page_id,)).fetchall()
             errors = connection.execute(
                 "SELECT * FROM html_parse_errors WHERE run_id=? AND inventory_item_id=?",
                 (p["run_id"], p["inventory_item_id"]),
@@ -173,6 +176,7 @@ class HtmlParserRepository:
                 resolvedAbsolutePath=x["resolved_absolute_path"], existsInInventory=bool(x["exists_in_inventory"]),
                 referencedInventoryItemId=x["referenced_inventory_item_id"], status=x["status"],
             ) for x in images],
+            imageContexts=[HtmlImageContext(domOrder=x['dom_order'],referenceOriginal=x['reference_original'],resolvedRelativePath=x['resolved_relative_path'],containerType=x['container_type'],contextText=x['context_text'],captionText=x['caption_text'],extractionRule=x['extraction_rule'],confidence=x['confidence'],status=x['status']) for x in contexts],
             linkReferences=[HtmlLinkReference(
                 hrefOriginal=x["href_original"], hrefNormalized=x["href_normalized"], visibleText=x["visible_text"],
                 title=x["title_text"], isExternal=bool(x["is_external"]), isAnchor=bool(x["is_anchor"]),

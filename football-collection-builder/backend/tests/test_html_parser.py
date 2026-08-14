@@ -136,3 +136,17 @@ def test_inventory_validation(tmp_path: Path):
     with pytest.raises(ValueError, match="coincide"):
         service.parse(HtmlParseRequest(workspacePath=str(tmp_path / "other")))
 
+def test_structural_image_contexts_are_conservative(tmp_path: Path):
+    image1=tmp_path/'one.jpg';image2=tmp_path/'two.jpg';image1.write_bytes(b'x');image2.write_bytes(b'x')
+    page=tmp_path/'index.html';page.write_text('''<table><tr><td><img src="one.jpg"></td><td><img src="two.jpg"></td></tr></table><table><tr><td>CAMISA HISTORICA - COPA</td></tr></table>''',encoding='utf-8')
+    service=service_for(tmp_path,[item(tmp_path,'index.html','p'),item(tmp_path,'one.jpg','i1'),item(tmp_path,'two.jpg','i2')]);service.parse(HtmlParseRequest(workspacePath=str(tmp_path)));value=details(service)
+    assert [x.status for x in value.imageContexts]==['matched','matched']
+    assert all(x.contextText=='CAMISA HISTORICA - COPA' and x.extractionRule=='HX001' for x in value.imageContexts)
+
+def test_ambiguous_and_missing_image_contexts(tmp_path: Path):
+    for name in ('one.jpg','two.jpg'): (tmp_path/name).write_bytes(b'x')
+    page=tmp_path/'index.html';page.write_text('<div><img src="one.jpg"><img src="two.jpg">texto compartilhado</div><img src="one.jpg">',encoding='utf-8')
+    service=service_for(tmp_path,[item(tmp_path,'index.html','p'),item(tmp_path,'one.jpg','i1'),item(tmp_path,'two.jpg','i2')]);service.parse(HtmlParseRequest(workspacePath=str(tmp_path)));contexts=details(service).imageContexts
+    assert contexts[0].status=='ambiguous' and contexts[1].status=='ambiguous'
+    assert contexts[2].status=='unsupported_structure' and contexts[2].contextText is None
+

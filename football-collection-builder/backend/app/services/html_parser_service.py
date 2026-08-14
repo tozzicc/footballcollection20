@@ -19,6 +19,7 @@ from app.models.html_parser import (
 from app.models.inventory import InventoryItem
 from app.repositories.html_parser_repository import HtmlParserRepository
 from app.repositories.inventory_repository import InventoryRepository
+from app.services.html_image_context_rules import extract_image_contexts
 
 
 def _utc_now() -> str:
@@ -119,6 +120,7 @@ class HtmlParserService:
         description = soup.find("meta", attrs={"name": re.compile(r"^description$", re.I)})
         html_tag = soup.find("html")
         images = [self._image(tag, item.relativePath, workspace, lookup) for tag in soup.find_all("img")]
+        image_contexts = extract_image_contexts(soup, images)
         links = [self._link(tag, item.relativePath, lookup) for tag in soup.find_all("a") if tag.has_attr("href")]
         return HtmlPageResult(
             inventoryItemId=item.id, relativePath=item.relativePath, absolutePath=item.absolutePath,
@@ -129,7 +131,7 @@ class HtmlParserService:
             charsetDeclared=declared,
             metaDescription=self._clean(str(description.get("content", ""))) or None if description else None,
             headings=headings, textPreview=self._clean(soup.get_text(" ", strip=True))[:500],
-            imageReferences=images, linkReferences=links,
+            imageReferences=images, imageContexts=image_contexts, linkReferences=links,
             parseStatus="parsed", parseMessage="Pagina analisada com sucesso.",
         )
 

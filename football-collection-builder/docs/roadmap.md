@@ -1,5 +1,17 @@
 # Roadmap
 
+## ET-018A — implementada
+
+Correção funcional da primeira versão visual: imagens reais, temporada histórica e descrição estruturalmente associada. A separação semântica de `competition` permanece conservadora e só será preenchida quando houver regra comprovadamente inequívoca.
+
+## ET-018 — implementada
+
+Primeira experiência visual navegável do Football Collection 2.0, separada do Builder e baseada somente na Public API e Media Layer. Ainda não representa um layout final aprovado ou uma versão pronta para produção. Deploy, domínio, CDN, thumbnails, SEO completo, analytics, autenticação e edição permanecem fora do escopo.
+
+## ET-017 — concluída
+
+A camada serve imagens originais de forma controlada e não destrutiva. Permanecem fora do escopo: thumbnails, redimensionamento, conversão, CDN, edição do acervo e publicação do site final.
+
 ## Concluído
 
 - ET-001 a ET-007D — fundações, Workspace e Scanner.
@@ -34,6 +46,14 @@ Catalog Builder inicial: estrutura lógica, relações com imagens, inferências
 ## ET-013 — concluída
 
 Camada de qualidade, regras seguras, fila de revisão, agrupamentos, resoluções rastreáveis e indicador técnico. Edição/ignore manual, merges e correções aproximadas seguem fora do escopo.
+
+## ET-016 — concluída
+
+Contrato e dados do futuro site público preparados. A ET-016 não implementa layout final, homepage pública, Media Server, thumbnails, SEO, deploy ou edição do catálogo.
+
+## ET-015 — concluída
+
+Normalização editorial não destrutiva, histórica e auditável. Não identifica atributos semânticos das camisas. Permanecem para etapas futuras: temporada, fabricante, jogador, número, competição, versão, home/away, match worn, match issued, descrição editorial e identificação visual. Não usa OCR, IA, internet ou conhecimento externo.
 
 ## ET-014 — concluída
 

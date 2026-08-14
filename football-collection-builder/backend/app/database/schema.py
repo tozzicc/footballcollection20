@@ -91,6 +91,16 @@ CREATE TABLE IF NOT EXISTS html_image_references (
  referenced_inventory_item_id TEXT, status TEXT NOT NULL,
  FOREIGN KEY(page_id) REFERENCES html_pages(id) ON DELETE CASCADE
 );
+-- image contexts are stored separately to keep existing references compatible
+CREATE TABLE IF NOT EXISTS html_image_contexts (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, html_page_id INTEGER NOT NULL, image_reference_id INTEGER NOT NULL,
+ reference_original TEXT NOT NULL, resolved_relative_path TEXT, dom_order INTEGER NOT NULL,
+ container_type TEXT, context_text TEXT, caption_text TEXT, extraction_rule TEXT NOT NULL,
+ confidence TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL,
+ FOREIGN KEY(html_page_id) REFERENCES html_pages(id) ON DELETE CASCADE,
+ FOREIGN KEY(image_reference_id) REFERENCES html_image_references(id) ON DELETE CASCADE,
+ UNIQUE(html_page_id,image_reference_id)
+);
 CREATE TABLE IF NOT EXISTS html_link_references (
  id INTEGER PRIMARY KEY AUTOINCREMENT, page_id INTEGER NOT NULL, href_original TEXT NOT NULL,
  href_normalized TEXT NOT NULL, visible_text TEXT, title_text TEXT, is_external INTEGER NOT NULL,
@@ -113,6 +123,8 @@ CREATE INDEX IF NOT EXISTS idx_html_images_page_id ON html_image_references(page
 CREATE INDEX IF NOT EXISTS idx_html_images_inventory_item_id ON html_image_references(referenced_inventory_item_id);
 CREATE INDEX IF NOT EXISTS idx_html_images_status ON html_image_references(status);
 CREATE INDEX IF NOT EXISTS idx_html_links_page_id ON html_link_references(page_id);
+CREATE INDEX IF NOT EXISTS idx_html_contexts_page_status ON html_image_contexts(html_page_id,status);
+CREATE INDEX IF NOT EXISTS idx_html_contexts_reference ON html_image_contexts(image_reference_id);
 CREATE INDEX IF NOT EXISTS idx_html_links_inventory_item_id ON html_link_references(referenced_inventory_item_id);
 CREATE INDEX IF NOT EXISTS idx_html_links_status ON html_link_references(status);
 CREATE INDEX IF NOT EXISTS idx_html_errors_run_id ON html_parse_errors(run_id);
@@ -285,6 +297,158 @@ CREATE INDEX IF NOT EXISTS idx_manual_reviews_type ON catalog_manual_reviews(rev
 CREATE INDEX IF NOT EXISTS idx_manual_reviews_entity ON catalog_manual_reviews(entity_type,entity_stable_key);
 CREATE INDEX IF NOT EXISTS idx_manual_reviews_reviewed ON catalog_manual_reviews(reviewed_at);
 CREATE INDEX IF NOT EXISTS idx_manual_reviews_reconciliation ON catalog_manual_reviews(reconciliation_status);
+
+CREATE TABLE IF NOT EXISTS catalog_normalization_runs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, catalog_build_id INTEGER NOT NULL, quality_run_id INTEGER,
+ started_at TEXT NOT NULL, completed_at TEXT, status TEXT NOT NULL, rules_version TEXT NOT NULL,
+ countries_processed INTEGER NOT NULL DEFAULT 0, teams_processed INTEGER NOT NULL DEFAULT 0,
+ collections_processed INTEGER NOT NULL DEFAULT 0, items_processed INTEGER NOT NULL DEFAULT 0,
+ normalized_count INTEGER NOT NULL DEFAULT 0, unchanged_count INTEGER NOT NULL DEFAULT 0,
+ review_required_count INTEGER NOT NULL DEFAULT 0, overridden_count INTEGER NOT NULL DEFAULT 0,
+ duration_ms INTEGER NOT NULL DEFAULT 0, error_message TEXT,
+ FOREIGN KEY(catalog_build_id) REFERENCES catalog_build_runs(id) ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS catalog_normalized_countries (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, normalization_run_id INTEGER NOT NULL, stable_key TEXT NOT NULL,
+ source_entity_id INTEGER NOT NULL, original_name TEXT NOT NULL, original_path TEXT NOT NULL,
+ normalized_name TEXT NOT NULL, display_name TEXT NOT NULL, slug TEXT NOT NULL,
+ normalization_status TEXT NOT NULL, normalization_source TEXT NOT NULL, confidence TEXT NOT NULL,
+ rule_codes TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ FOREIGN KEY(normalization_run_id) REFERENCES catalog_normalization_runs(id) ON DELETE CASCADE,
+ UNIQUE(normalization_run_id,stable_key)
+);
+CREATE TABLE IF NOT EXISTS catalog_normalized_teams (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, normalization_run_id INTEGER NOT NULL, stable_key TEXT NOT NULL,
+ source_entity_id INTEGER NOT NULL, country_stable_key TEXT, original_name TEXT NOT NULL, original_path TEXT NOT NULL,
+ normalized_name TEXT NOT NULL, display_name TEXT NOT NULL, slug TEXT NOT NULL,
+ normalization_status TEXT NOT NULL, normalization_source TEXT NOT NULL, confidence TEXT NOT NULL,
+ rule_codes TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ FOREIGN KEY(normalization_run_id) REFERENCES catalog_normalization_runs(id) ON DELETE CASCADE,
+ UNIQUE(normalization_run_id,stable_key)
+);
+CREATE TABLE IF NOT EXISTS catalog_normalized_collections (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, normalization_run_id INTEGER NOT NULL, stable_key TEXT NOT NULL,
+ source_entity_id INTEGER NOT NULL, team_stable_key TEXT NOT NULL, country_stable_key TEXT,
+ original_name TEXT NOT NULL, original_path TEXT NOT NULL, normalized_name TEXT NOT NULL,
+ display_name TEXT NOT NULL, slug TEXT NOT NULL, collection_type TEXT NOT NULL,
+ inclusion_period TEXT, inclusion_month INTEGER, inclusion_year INTEGER, inclusion_batch INTEGER,
+ normalization_status TEXT NOT NULL, normalization_source TEXT NOT NULL, confidence TEXT NOT NULL,
+ rule_codes TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ FOREIGN KEY(normalization_run_id) REFERENCES catalog_normalization_runs(id) ON DELETE CASCADE,
+ UNIQUE(normalization_run_id,stable_key)
+);
+CREATE TABLE IF NOT EXISTS catalog_normalized_items (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, normalization_run_id INTEGER NOT NULL, stable_key TEXT NOT NULL,
+ source_entity_id INTEGER NOT NULL, team_stable_key TEXT NOT NULL, country_stable_key TEXT,
+ collection_stable_key TEXT, original_title TEXT NOT NULL, original_path TEXT NOT NULL,
+ normalized_title TEXT NOT NULL, display_title TEXT NOT NULL, slug TEXT NOT NULL, source_page TEXT NOT NULL,
+ normalization_status TEXT NOT NULL, normalization_source TEXT NOT NULL, confidence TEXT NOT NULL,
+ rule_codes TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ FOREIGN KEY(normalization_run_id) REFERENCES catalog_normalization_runs(id) ON DELETE CASCADE,
+ UNIQUE(normalization_run_id,stable_key)
+);
+CREATE TABLE IF NOT EXISTS catalog_normalization_events (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, normalization_run_id INTEGER NOT NULL, entity_type TEXT NOT NULL,
+ entity_stable_key TEXT NOT NULL, rule_code TEXT NOT NULL, previous_value TEXT, resulting_value TEXT,
+ status TEXT NOT NULL, source TEXT NOT NULL, confidence TEXT NOT NULL, message TEXT NOT NULL,
+ created_at TEXT NOT NULL, FOREIGN KEY(normalization_run_id) REFERENCES catalog_normalization_runs(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_normalization_runs_latest ON catalog_normalization_runs(status,id DESC);
+CREATE INDEX IF NOT EXISTS idx_normalized_countries_run_status ON catalog_normalized_countries(normalization_run_id,normalization_status);
+CREATE INDEX IF NOT EXISTS idx_normalized_teams_run_country_status ON catalog_normalized_teams(normalization_run_id,country_stable_key,normalization_status);
+CREATE INDEX IF NOT EXISTS idx_normalized_collections_run_team_status ON catalog_normalized_collections(normalization_run_id,team_stable_key,normalization_status);
+CREATE INDEX IF NOT EXISTS idx_normalized_items_run_collection_status ON catalog_normalized_items(normalization_run_id,collection_stable_key,normalization_status);
+CREATE INDEX IF NOT EXISTS idx_normalization_events_run_entity ON catalog_normalization_events(normalization_run_id,entity_type,entity_stable_key);
+CREATE INDEX IF NOT EXISTS idx_normalization_events_rule ON catalog_normalization_events(rule_code);
+
+CREATE TABLE IF NOT EXISTS catalog_view_runs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, normalization_run_id INTEGER NOT NULL, started_at TEXT NOT NULL,
+ completed_at TEXT, status TEXT NOT NULL, countries INTEGER NOT NULL DEFAULT 0,
+ teams INTEGER NOT NULL DEFAULT 0, collections INTEGER NOT NULL DEFAULT 0, items INTEGER NOT NULL DEFAULT 0,
+ media_relations INTEGER NOT NULL DEFAULT 0, ready INTEGER NOT NULL DEFAULT 0,
+ review_required INTEGER NOT NULL DEFAULT 0, unavailable INTEGER NOT NULL DEFAULT 0,
+ duration_ms INTEGER NOT NULL DEFAULT 0, schema_version TEXT NOT NULL, error_message TEXT,
+ FOREIGN KEY(normalization_run_id) REFERENCES catalog_normalization_runs(id) ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS catalog_view_countries (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, view_run_id INTEGER NOT NULL, slug TEXT NOT NULL, name TEXT NOT NULL,
+ original_name TEXT, teams_count INTEGER NOT NULL, collections_count INTEGER NOT NULL, items_count INTEGER NOT NULL,
+ primary_media_key TEXT, public_status TEXT NOT NULL, FOREIGN KEY(view_run_id) REFERENCES catalog_view_runs(id) ON DELETE CASCADE,
+ UNIQUE(view_run_id,slug)
+);
+CREATE TABLE IF NOT EXISTS catalog_view_teams (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, view_run_id INTEGER NOT NULL, slug TEXT NOT NULL, country_slug TEXT NOT NULL,
+ name TEXT NOT NULL, original_name TEXT, collections_count INTEGER NOT NULL, items_count INTEGER NOT NULL,
+ images_count INTEGER NOT NULL, primary_media_key TEXT, latest_inclusion_period TEXT,
+ public_status TEXT NOT NULL, FOREIGN KEY(view_run_id) REFERENCES catalog_view_runs(id) ON DELETE CASCADE,
+ UNIQUE(view_run_id,country_slug,slug)
+);
+CREATE TABLE IF NOT EXISTS catalog_view_collections (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, view_run_id INTEGER NOT NULL, slug TEXT NOT NULL,
+ country_slug TEXT NOT NULL, team_slug TEXT NOT NULL, name TEXT NOT NULL, original_name TEXT,
+ collection_type TEXT NOT NULL, inclusion_month INTEGER, inclusion_year INTEGER, inclusion_batch INTEGER,
+ display_period TEXT, items_count INTEGER NOT NULL, images_count INTEGER NOT NULL,
+ primary_media_key TEXT, public_status TEXT NOT NULL,
+ FOREIGN KEY(view_run_id) REFERENCES catalog_view_runs(id) ON DELETE CASCADE,
+ UNIQUE(view_run_id,country_slug,team_slug,slug)
+);
+CREATE TABLE IF NOT EXISTS catalog_view_items (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, view_run_id INTEGER NOT NULL, slug TEXT NOT NULL,
+ country_slug TEXT NOT NULL, team_slug TEXT NOT NULL, collection_slug TEXT,
+ title TEXT NOT NULL, original_title TEXT, item_type TEXT NOT NULL, source_page_reference TEXT,
+ images_count INTEGER NOT NULL, primary_media_key TEXT, public_status TEXT NOT NULL,
+ public_route TEXT NOT NULL, breadcrumbs_json TEXT NOT NULL, season_label TEXT,
+ season_start_year INTEGER, season_end_year INTEGER, description TEXT, competition TEXT,
+ FOREIGN KEY(view_run_id) REFERENCES catalog_view_runs(id) ON DELETE CASCADE,
+ UNIQUE(view_run_id,public_route)
+);
+CREATE TABLE IF NOT EXISTS catalog_view_media (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, view_run_id INTEGER NOT NULL, item_public_route TEXT NOT NULL,
+ public_media_key TEXT NOT NULL, inventory_reference TEXT, filename TEXT NOT NULL, extension TEXT NOT NULL,
+ width INTEGER, height INTEGER, aspect_ratio REAL, format TEXT, alt_text TEXT,
+ display_order INTEGER, is_primary_candidate INTEGER NOT NULL, media_source TEXT NOT NULL,
+ availability_status TEXT NOT NULL, FOREIGN KEY(view_run_id) REFERENCES catalog_view_runs(id) ON DELETE CASCADE,
+ UNIQUE(view_run_id,item_public_route,public_media_key)
+);
+CREATE INDEX IF NOT EXISTS idx_view_runs_latest ON catalog_view_runs(status,id DESC);
+CREATE INDEX IF NOT EXISTS idx_view_countries_run_status ON catalog_view_countries(view_run_id,public_status);
+CREATE INDEX IF NOT EXISTS idx_view_teams_run_country_slug ON catalog_view_teams(view_run_id,country_slug,slug);
+CREATE INDEX IF NOT EXISTS idx_view_teams_status ON catalog_view_teams(view_run_id,public_status);
+CREATE INDEX IF NOT EXISTS idx_view_collections_scope ON catalog_view_collections(view_run_id,country_slug,team_slug,slug);
+CREATE INDEX IF NOT EXISTS idx_view_collections_period ON catalog_view_collections(view_run_id,inclusion_year DESC,inclusion_month DESC,inclusion_batch DESC);
+CREATE INDEX IF NOT EXISTS idx_view_collections_status ON catalog_view_collections(view_run_id,public_status);
+CREATE INDEX IF NOT EXISTS idx_view_items_scope ON catalog_view_items(view_run_id,country_slug,team_slug,collection_slug,slug);
+CREATE INDEX IF NOT EXISTS idx_view_items_type_status ON catalog_view_items(view_run_id,item_type,public_status);
+CREATE INDEX IF NOT EXISTS idx_view_media_item ON catalog_view_media(view_run_id,item_public_route,display_order);
+
+CREATE TABLE IF NOT EXISTS media_build_runs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, catalog_view_run_id INTEGER NOT NULL, started_at TEXT NOT NULL,
+ completed_at TEXT, status TEXT NOT NULL, total_relations INTEGER NOT NULL DEFAULT 0,
+ unique_assets INTEGER NOT NULL DEFAULT 0, available_assets INTEGER NOT NULL DEFAULT 0,
+ unavailable_assets INTEGER NOT NULL DEFAULT 0, invalid_assets INTEGER NOT NULL DEFAULT 0,
+ duration_ms INTEGER NOT NULL DEFAULT 0, schema_version TEXT NOT NULL, error_message TEXT,
+ FOREIGN KEY(catalog_view_run_id) REFERENCES catalog_view_runs(id) ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS media_assets (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, media_run_id INTEGER NOT NULL, media_key TEXT NOT NULL,
+ inventory_reference TEXT NOT NULL, relative_path TEXT NOT NULL, filename TEXT NOT NULL, extension TEXT NOT NULL,
+ format TEXT, mime_type TEXT NOT NULL, file_size INTEGER NOT NULL, width INTEGER, height INTEGER,
+ aspect_ratio REAL, valid INTEGER NOT NULL, available INTEGER NOT NULL, modified_at TEXT,
+ created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ FOREIGN KEY(media_run_id) REFERENCES media_build_runs(id) ON DELETE CASCADE,
+ UNIQUE(media_run_id,media_key)
+);
+CREATE TABLE IF NOT EXISTS media_asset_relations (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, media_run_id INTEGER NOT NULL,
+ view_public_media_key TEXT NOT NULL, media_key TEXT NOT NULL,
+ FOREIGN KEY(media_run_id) REFERENCES media_build_runs(id) ON DELETE CASCADE,
+ UNIQUE(media_run_id,view_public_media_key)
+);
+CREATE INDEX IF NOT EXISTS idx_media_runs_latest ON media_build_runs(status,id DESC);
+CREATE INDEX IF NOT EXISTS idx_media_assets_key ON media_assets(media_key,media_run_id);
+CREATE INDEX IF NOT EXISTS idx_media_assets_available ON media_assets(media_run_id,available,valid);
+CREATE INDEX IF NOT EXISTS idx_media_assets_format ON media_assets(media_run_id,format);
+CREATE INDEX IF NOT EXISTS idx_media_relations_view_key ON media_asset_relations(media_run_id,view_public_media_key);
 """
 
 TABLES = (
@@ -298,7 +462,7 @@ TABLES = (
 
 HTML_PARSER_TABLES = (
     "html_parse_runs", "html_pages", "html_headings", "html_image_references",
-    "html_link_references", "html_parse_errors",
+    "html_link_references", "html_parse_errors", "html_image_contexts",
 )
 
 IMAGE_PARSER_TABLES = ("image_parse_runs", "image_metadata", "image_parse_errors")

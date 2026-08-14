@@ -1457,3 +1457,4 @@
     flex-direction: column;
   }
 }
+.media-layer-preview{display:block;max-width:96px;max-height:72px;object-fit:contain;border-radius:6px}.media-layer-detail{display:block;max-width:min(100%,640px);max-height:60vh;object-fit:contain;margin:1rem auto;border-radius:8px}

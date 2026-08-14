@@ -1,5 +1,29 @@
 # Changelog
 
+## ET-018A — imagens e camada editorial
+
+- Correção centralizada de `mediaUrl` relativa usando a base configurada da API.
+- Contexto estrutural por imagem no Parser HTML, com associação conservadora e auditável.
+- Temporadas determinísticas derivadas somente de títulos e filenames históricos.
+- Períodos `MM_AA[_lote]` removidos da apresentação editorial pública.
+- Home, Latest, equipe, item e galeria adaptados para items, temporadas e descrições seguras.
+
+## ET-018 — Primeira versão visual navegável
+
+- Área pública isolada do AppShell administrativo em `/site`.
+- Home editorial com hero real, resumo, últimas inclusões, países e equipes em destaque.
+- Navegação por países, equipes, collections e os dois formatos de item.
+- Galeria baseada em `mediaUrl`, busca pública, paginação, breadcrumbs e 404 própria.
+- Tema visual de arquivo esportivo responsivo e acessível, sem dados técnicos internos.
+
+## ET-017 — Media Layer
+
+- Camada histórica e transacional de assets derivada do View Model e do Parser de Imagens.
+- `mediaKey` SHA-256 determinístico, resolver com contenção de caminho e entrega somente leitura.
+- API de status, build, resumo, listagem, metadata e conteúdo com cache HTTP e MIME explícito.
+- SVG auditável, porém bloqueado inline; nenhum thumbnail, cópia ou alteração do acervo.
+- Public API enriquecida com `mediaUrl` e previews reais em `/midia-site` e `/modelo-publico`.
+
 ## ET-011 — Image Parser
 
 - Auditoria somente leitura de JPEG, PNG, GIF, BMP, WebP, TIFF e SVG com Pillow.
@@ -56,6 +80,18 @@
 - Quality runs, assessments e resolutions transacionais.
 - Regras determinísticas CQ001–CQ003, agrupamentos, score, filtros e detalhes.
 - Página `/qualidade-catalogo`, sem edição manual ou alteração do acervo.
+
+## ET-016 — Catalog View Model
+
+- View Model versionado e histórico separado da normalização.
+- Public API paginada para entidades, detalhes, navegação, busca e últimas inclusões.
+- Rotas de item inequívocas, mídia lógica e página administrativa `/modelo-publico`.
+
+## ET-015 — Catalog Entity Normalization & Enrichment
+
+- Camada normalizada histórica, transacional e separada do catálogo-base.
+- Registry de regras v1.0.1, slugs determinísticos por escopo, eventos e overlay manual `matched`.
+- API paginada, detalhes, interface `/normalizacao-catalogo` e testes de rollback/reconciliação.
 
 ## ET-014 — Revisão Manual Assistida
 
