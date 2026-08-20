@@ -1,0 +1,5 @@
+stage,expected,actual,missing,classification,evidence
+Catalog candidate,4465,4465,0,NO_LOSS,catalog_items build 10
+Normalization candidate,4465,4465,0,NO_LOSS,items_processed and catalog_normalized_items
+View candidate,4465,4465,0,NO_LOSS,view run items and catalog_view_items
+Misread metric,,4464,,READY_WITHOUT_MEDIA_NOT_ITEM_COUNT,public_status=ready and images_count=0 before relation restoration

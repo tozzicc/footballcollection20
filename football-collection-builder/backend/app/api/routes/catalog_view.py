@@ -31,6 +31,11 @@ def team(country_slug:str,team_slug:str):
  value=service.repository.team_detail(country_slug,team_slug)
  if value is None:raise HTTPException(404,detail='Equipe não encontrada.')
  return value
+@router.get('/public/catalog/seasons/{country_slug}/{team_slug}/{season}')
+def season(country_slug:str,team_slug:str,season:str):
+ value=service.repository.season_detail(country_slug,team_slug,season)
+ if value is None:raise HTTPException(404,detail='Temporada não encontrada.')
+ return value
 @router.get('/public/catalog/collections',response_model=PublicPage)
 def collections(country:str|None=None,team:str|None=None,year:int|None=None,month:int|None=None,type:str|None=None,status:str|None=None,search:str|None=None,limit:int=Query(24,ge=1,le=100),offset:int=Query(0,ge=0)):return page('collections',limit,offset,country=country,team=team,year=year,month=month,type=type,status=status,search=search)
 @router.get('/public/catalog/collections/{country_slug}/{team_slug}/{collection_slug}')

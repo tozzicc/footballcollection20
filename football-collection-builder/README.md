@@ -1,5 +1,93 @@
 # Football Collection Builder
 
+## Correções funcionais pós-homologação — ET-026
+
+A busca pública reconhece os nomes editoriais globais das equipes com ou sem acentos, preserva os resultados do catálogo e inclui a homenagem ao Chicão como conteúdo editorial. Registros históricos sem mídia permanecem acessíveis e exibem um aviso explícito, sem esconder falhas nem criar associações paralelas. O diagnóstico completo está em `docs/et-026-functional-fixes-report.md`; as coleções vazias continuam reservadas à ET-027.
+
+A ET-026A acrescentou ranking determinístico por identidade e pertencimento. Uma equipe exata aparece antes de seu conteúdo, e este aparece antes de correspondências textuais de outras equipes. Itens preservam o título histórico, mas agora informam explicitamente sua equipe real. Consultas sem acento reutilizam o display name como alias da mesma API, sem backend ou índice paralelo.
+
+A ET-026B tornou essa resolução contextual: quando uma única equipe é identificada exatamente, somente a entidade e conteúdos vinculados estruturalmente a ela participam do resultado. Consultas amplas, como `América` e `1988`, continuam globais. Nenhum registro histórico foi alterado ou ocultado fora do contexto exato.
+
+A ET-026C simplificou o contexto exato: uma equipe identificada inequivocamente agora é o único resultado. Termos compatíveis com várias equipes, como `América`, retornam somente essas entidades; consultas sem identidade, como `1988` e `Brasil`, mantêm a busca global.
+
+## Página memorial “Chicão — O Deus da Raça” — ET-024C
+
+`/site/chicao` apresenta a página memorial editorial baseada no HTML histórico original `chicao/chicao.htm`. O depoimento integral e sua autoria, Mauro Matta, foram preservados sem reescrita. Cinco imagens confirmadas foram copiadas byte a byte para `public/assets/chicao` como ponte frontend estática, sem modificar o acervo original ou reconstruir a Media Layer.
+
+A página utiliza uma imagem histórica de entrada e quatro imagens rotuladas no HTML original como São Paulo, Seleção Brasileira, Santos e Atlético Mineiro. Os três AVI permanecem intactos e são apenas documentados; reprodução e conversão continuam pendentes. A chamada aprovada da Home não foi alterada.
+
+A ET-024C.1 refinou exclusivamente a composição do hero e os espaços verticais da página: a fotografia de entrada permanece limitada aos 118×252 px originais, enquanto o texto ganhou maior protagonismo. O rótulo local da quarta imagem passou a “Atlético-MG”, sem alteração do arquivo ou dos resolvedores globais.
+
+A ET-024D concluiu a integração pública do memorial: removeu a legenda documental do hero, vinculou somente os cards com associação comprovada no catálogo (São Paulo 1977, Seleção Brasileira 1978 e Atlético-MG 1979) e manteve Santos sem link por ausência de item inequivocamente relacionado ao Chicão. Os três AVI históricos permanecem intocados no workspace; derivados MP4 H.264/AAC locais, sem upscale, alimentam os players HTML5 da seção “Registro audiovisual”.
+
+A ET-024D.1 criou destinos editoriais exclusivos em `/site/chicao/camisas/*`. A correção ET-024D.1R passou essas páginas a reutilizar diretamente o mesmo componente e o mesmo conjunto ordenado de mídias dos registros editoriais das páginas de temporada. São Paulo 1977 apresenta frente, costas e jogador; Seleção Brasileira 1978 e Atlético-MG 1979 exibem todas as mídias de seus respectivos registros. Santos continua sem link.
+
+A ET-024E adicionou “Homenagem” à navegação pública principal, entre “Coleções” e “Últimas inclusões”, apontando para `/site/chicao`. O item reutiliza integralmente o `NavLink` e o comportamento responsivo já existentes, incluindo active state nas subrotas do memorial.
+
+## Chamada editorial da homenagem ao Chicão — ET-024B
+
+A Home pública inclui, após “Equipes em destaque”, uma seção documental para “Chicão — O Deus da Raça”, usando exclusivamente o asset estático aprovado `public/assets/collections/chicao-memorial-home.png`. A chamada aponta para `/site/chicao`, que nesta etapa contém apenas um placeholder acessível; a página memorial definitiva permanece reservada à ET-024C.
+
+A ET-024B.2 consolidou a versão atual desse asset como oficial. A imagem permanece integral, proporcional e sem textos HTML visíveis sobrepostos; somente uma área de link transparente, acessível e responsiva acompanha o botão desenhado no PNG. O placeholder de `/site/chicao` permanece inalterado.
+
+## Capas editoriais estáticas — ET-020D
+
+As seis capas da Home de Coleções e dos grupos de Flâmulas são assets visuais próprios do frontend em `public/assets/collections`. Elas não pertencem ao Workspace histórico, não são itens do acervo e não entram em Scanner, Inventory, Image Metadata ou Media Layer. A configuração usa URLs públicas estáticas e mantém os itens internos ligados às mídias históricas reais.
+
+Os cards de capa compartilham imagem acima, texto abaixo, `object-fit: cover`, hover discreto de 200 ms e fallback textual neutro. Os cards de itens históricos continuam usando `object-fit: contain`.
+
+## Identidade Visual das Coleções Históricas — ET-020C
+
+A home de Coleções usa covers explícitas de itens `ready` do próprio domínio: Atalanta para Flâmulas, bandeira física do Genoa para Bandeiras e luvas de Stefano Tacconi para Memorabilia. Os grupos de Flâmulas usam Brasil, Atalanta e Ajax, cada qual pertencente ao grupo correspondente. A configuração guarda apenas slugs determinísticos em `historicalCollectionIdentity.ts`; nenhuma URL física ou imagem externa é usada.
+
+Cards claros, imagens com `object-fit: contain`, hover de 200 ms e entrada discreta de 260 ms preservam o caráter editorial. `prefers-reduced-motion` remove animações e transforms, e nenhuma informação depende de hover.
+
+## Coleções Históricas — ET-020
+
+`/colecoes-historicas` constrói um domínio complementar versionado para Flâmulas, Bandeiras e Memorabilia, sem reutilizar entidades `catalog_*`. O schema `1.0.0` preserva runs, seções, itens e relações de mídia nas tabelas `historical_collection_*`; stable keys usam SHA-256 de seção, HTML de origem, ordem estrutural e referência da imagem. Slugs combinam legenda normalizada e sufixo determinístico.
+
+A área pública começa em `/site/colecoes`. A API fica sob `/api/public/collections`, com summary, seções e itens paginados em lotes de 24. Os 196 assets editoriais entram na Media Layer normal como origem `historical_collection`; imagens órfãs permanecem excluídas. Search, Latest e counts da Home continuam exclusivos do catálogo de camisas.
+
+## Country Team Listing & Editorial Season Pages — ET-018G
+
+As páginas de país carregam todas as equipes por um helper central que percorre a paginação segura da API; os controles visuais foram removidos apenas desse contexto, enquanto `/site/equipes` continua paginada. Team e Country Branding compartilham variantes compactas e de cabeçalho, sempre com `contain` e limites de escala coerentes.
+
+A navegação principal de equipe agora é Equipe → Temporada → Registros editoriais. A rota `/site/paises/{country}/equipes/{team}/temporadas/{season}` apresenta cada item persistido como bloco independente, preservando ordem, descrição e mídias próprias. Rotas individuais de item e collection continuam compatíveis.
+
+## Paginação das equipes e cards compactos — ET-018F
+
+A listagem da página de país era truncada porque renderizava somente as 12 equipes incluídas no payload resumido do detalhe, sem solicitar as páginas seguintes. Países e listagem geral agora consultam `/teams` com `limit=24` e `offset` real, preservam a página em `?page=N` e retornam à página 1 quando busca ou filtro muda.
+
+`PublicTeamCard` usa uma composição compacta, com área de mídia de aproximadamente 140 px e logo limitado a 100×100 px por dimensões automáticas e `object-fit: contain`. O layout público passou a usar flex vertical com `main` flexível, removendo o `min-height` artificial que ampliava o vazio antes do footer.
+
+## Country Branding e refino da Home — ET-018E
+
+A camada derivada Country Branding identifica a imagem editorial que antecede a grade dimensionada de escudos na landing direta de cada país. A regra auditável `CB001_COUNTRY_LANDING_HEADER_LOGO` usa stable keys e persiste os estados `matched`, `unavailable` ou `ambiguous`; não usa filename como evidência e não inventa identidade quando a estrutura não é segura.
+
+O View Model 1.4.0 publica `logoMedia` de países separadamente de `primaryMedia`. Brasil usa `logos/selecaob.gif`, Itália usa `logos/italy2.gif` e “Outros” mantém fallback textual discreto. A Home apresenta a seção “Bandeiras”; a composição aprovada do Hero permanece inalterada.
+
+## Team Branding e composição do Hero — ET-018D
+
+A camada derivada Team Branding identifica logos exclusivamente quando a página estrutural da equipe (`paises/{país}/{equipe}/{equipe}.htm[l]`) referencia um único asset persistido no diretório lógico `logos/`. A regra `TB001_TEAM_LANDING_LOGOS_DIRECTORY` é auditável, usa a stable key da equipe e produz os estados `matched`, `unavailable` ou `ambiguous`; ausência e ambiguidade nunca promovem camisas ou fotografias como fallback.
+
+O View Model 1.3.0 expõe `logoMedia` separadamente de `primaryMedia`. Cards e cabeçalhos de equipe usam somente o logo, com `object-fit: contain`, enquanto países/regiões utilizam identidade tipográfica neutra em vez de herdar mídia de uma equipe.
+
+O Hero público usa uma composição configurável formada por `index/picture0004.jpg`, `index/a.jpg` e `index/b.jpg`, todos referenciados pela entrada histórica `meindex.htm`. Cada asset é entregue pela Media Layer e pode falhar independentemente; nenhuma alternativa de Latest é selecionada.
+
+## Registros editoriais e Hero — ET-018C
+
+O Catalog Builder promove grupos contíguos de `html_image_contexts` com status `matched` a registros editoriais independentes. A separação exige que todas as imagens da página possuam contexto estrutural seguro e utiliza transições de bloco HX, container e posição DOM; quantidade de imagens, filename e nomes de jogadores não participam da regra. Estruturas ambíguas ou não suportadas permanecem agregadas e auditáveis.
+
+Cada registro persiste `editorial_anchor`, status, regra e descrição. Sua stable key combina a entidade pai, a página original e a âncora estrutural, mantendo determinismo entre rebuilds e distinguindo registros editoriais da mesma temporada. O View Model 1.2.0 preserva uma rota e uma galeria por registro.
+
+O Hero deixou de consumir automaticamente a primeira mídia de Latest. Sua mídia é declarada em `publicSiteConfig` e servida pela Media Layer; a configuração atual usa `index/picture0004.jpg` (455×273), originada da composição histórica de `meindex.htm`. Na ausência ou falha dessa mídia, o Hero permanece tipográfico, sem selecionar outro asset.
+
+## Identidade visual pública — ET-018B
+
+O site público em `/site` utiliza uma identidade de arquivo/museu esportivo baseada em branco (`#FFFFFF`), grafite (`#0D1117`) e azuis (`#173B57`, `#275D81` e `#3D85B9`). Os tokens semânticos ficam isolados em `frontend/src/public/styles/public-site.css`, sob `.public-site`, sem alterar a paleta nem os componentes do Builder administrativo.
+
+A nova identidade cobre header, busca, hero, estatísticas, cards, fallbacks, breadcrumbs, filtros, paginação, galeria, estados e footer de todas as rotas públicas. A ET é exclusivamente visual: Public API, Media Layer, View Model 1.1.0, regras editoriais da ET-018A e dados persistidos permanecem inalterados.
+
 ## Correção funcional — ET-018A
 
 As URLs relativas da Media Layer agora são resolvidas centralmente com `VITE_API_BASE_URL`, evitando que o navegador solicite imagens ao servidor Vite. A camada editorial pública separa temporada de período interno de inclusão: `MM_AA` e `MM_AA_lote` nunca são apresentados como temporada ou título.
@@ -199,6 +287,16 @@ Endpoints: POST /api/html-parser/parse, GET /api/html-parser/status, GET /api/ht
 
 O parser é sequencial, síncrono e somente leitura: não corrige links, baixa recursos, executa ASP/JavaScript, cria arquivos ou altera o Workspace.
 
+Na ET-018H, cada contexto de imagem passou a registrar índices dos contêineres de imagem e descrição no DOM, tipos dos contêineres, ordem estrutural e uma chave de grupo local determinística. O Catalog Builder usa essa fronteira para impedir que descrições textualmente iguais fundam registros editoriais distintos; ambiguidades continuam preservadas para revisão.
+
+Na ET-018I, a Home pública recebeu refinamento de proporção: Hero mais compacto, cards Latest com apresentação específica em `contain` e Country Branding em escala reduzida. Latest continua usando a primeira mídia na ordem editorial persistida, sem classificador visual. A identidade de Outros usa o globo histórico `planeta03.gif`, ligado pelas páginas legadas de navegação.
+
+Na ET-018J, o Hero passou a ter altura estrutural efetiva de 455 px no desktop. O ajuste substitui o antigo piso de `min-height`, limita a contribuição intrínseca do mosaico e mantém altura natural nos layouts empilhados. O subtítulo do header público agora é “COLEÇÃO DE CAMISAS”.
+
+Na ET-018J.1, a mesma regra estrutural foi calibrada para 530 px no desktop largo e 485 px em 1024 px, preservando 42,5% para texto e 57,5% para o mosaico. Layouts empilhados, header e demais seções não foram modificados.
+
+Na ET-018J.2, o mosaico recuperou a geometria comprovada em `meindex.htm`: `a.jpg` e `b.jpg` compõem Torino à esquerda; `picture0004.jpg` (Delle Alpi) e `picture0003.JPG` (Comunale) ficam empilhados à direita. A composição usa quatro arquivos físicos em três áreas visuais, sem gerar ou modificar imagens.
+
 A ET-010A concluiu a interface em `/parser-html`, incluindo status, execução e atualização, resumo persistido, paginação e busca de páginas, detalhes e referências ausentes.
 
 ## Image Parser — ET-011
@@ -220,6 +318,7 @@ O módulo não gera previews ou thumbnails, não extrai EXIF pessoal e não alte
 ## Autor
 
 Football Collection Builder Team
+
 # Catalog Builder (ET-012)
 
 O módulo **Catálogo** transforma exclusivamente os dados persistidos do Inventory, Parser HTML e Parser de Imagens em `Country/Region → Team → Collection → Item → Images`. O build não relê o Workspace e não executa etapas anteriores. Inferências preservam valor original, origem e confiança; ambiguidades ficam em Issues. Pastas `MM_AA` e `MM_AA_lote` são períodos de inclusão (anos 2000), nunca temporadas. Consulte a página `/catalogo` ou os endpoints `/api/catalog/*`.
@@ -247,3 +346,25 @@ As regras versionadas `CN001`, `TM001`, `CL001`, `IT001`, `SL001`, `SL002` e `MR
 A rota administrativa `/modelo-publico` inspeciona o contrato de apresentação preparado para o futuro Football Collection 2.0. O View Model consome somente o último run completo da normalização, possui schema `1.0.0`, runs históricos e Public API paginada sob `/api/public/catalog`.
 
 Items com collection usam `/items/{country}/teams/{team}/collections/{collection}/{item}`; items sem collection usam `/items/{country}/teams/{team}/items/{item}`. As rotas e breadcrumbs são persistidos, não expõem stableKeys/IDs SQL e preservam os slugs da ET-015. Mídia é apenas referência lógica; nenhum arquivo físico é servido.
+### ET-021 — Hero editorial da Home
+
+O hero público de `/site` usa agora o asset estático `frontend/public/assets/collections/football-collection-hero-v2.png`, preservado integralmente com dimensionamento proporcional. A chamada “Explorar o acervo” continua sendo um link HTML real e acessível para `/site/paises`, posicionado proporcionalmente sobre o botão representado na arte. A montagem histórica anterior foi preservada nos assets do acervo; nenhuma camada derivada foi reconstruída.
+### ET-021A — Capas editoriais de Países e Regiões
+
+A página `/site/paises` associa deterministicamente os slugs `brasil`, `italia` e `outros` a três capas PNG estáticas do frontend. As capas usam preenchimento editorial com `object-fit: cover`, enquanto títulos, contagens e rotas continuam provenientes da aplicação. Logos históricos dos detalhes, backend e camadas derivadas permanecem inalterados.
+### ET-021B — Explore o acervo na Home
+
+A seção geográfica da Home deixou de usar a nomenclatura histórica inadequada “Bandeiras” e passou a se chamar “Explore o acervo”. Os atalhos Brasil, Itália e Outros compartilham as capas editoriais da ET-021A, mantêm contagens dinâmicas e apontam para as rotas de país existentes; a coleção histórica Bandeiras permanece independente em `/site/colecoes/bandeiras`.
+### ET-022 — Equipes em destaque
+
+Os cards de “Equipes em destaque” da Home mantêm uma variante editorial própria, seleção, ordenação, contagens e rotas dinâmicas. A tentativa de ampliar os pequenos GIFs históricos não foi aprovada devido à pixelização e foi revertida: a mídia usa 140 px e os logos preservam dimensões intrínsecas, limitadas a 100×100 px com `object-fit: contain`. Os nomes mantêm capitalização de display e as correções determinísticas `Atlético` e `Grêmio`; a classificação `Italy` permanece preservada para auditoria futura. A normalização editorial completa dos nomes ficará para uma ET posterior.
+### ET-023 — Global Team Display Names
+
+O site público utiliza um resolvedor único de nomes editoriais de equipes em `teamDisplayName.ts`. Slugs, rotas, stable keys e nomes persistidos permanecem intactos; somente a apresentação é normalizada em Home, listagens, país, equipe, temporadas, itens, Latest, busca e breadcrumbs. A auditoria das 175 equipes está em `docs/team-display-names-audit.md`: 169 casos `SAFE`, 6 `AMBIGUOUS` e nenhum `REVIEW_REQUIRED`. A entidade `italia/italy` mantém sua taxonomia e rota, exibindo apenas “Itália”. Nenhuma camada foi reconstruída.
+### ET-023A — Correções pontuais de display
+
+Os nomes de país/região agora passam pelo helper centralizado `countryDisplayName`, exibindo `Brasil`, `Itália` e `Outros` sem alterar seus slugs ou rotas. O override global `brasil/atletico` passou de “Atlético Mineiro” para “Atlético-MG”. Layout, logos, ET-022R, seis casos ambíguos e dados persistidos permanecem inalterados.
+
+### ET-029G — Recuperação oficial das associações
+
+Aplicadas oficialmente 698 reassociações de itens para coleções comprovadas. O pipeline coordenado preservou 4.465 itens, recuperou 260 coleções, restaurou 16.245 relações Catalog e gerou Normalization 10, View 16 e Media 18. Permanecem 91 coleções vazias, 8 itens sem mídia, 11 itens `fot_gio` e as 24 anomalias cross-team controladas. O snapshot pré-aplicação e a auditoria completa estão documentados em `docs/et-029g-official-coordinated-apply.md`.

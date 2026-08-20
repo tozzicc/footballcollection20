@@ -14,6 +14,10 @@ class CatalogViewRepository:
    columns={x['name'] for x in c.execute('pragma table_info(catalog_view_items)')}
    for name,kind in [('season_label','TEXT'),('season_start_year','INTEGER'),('season_end_year','INTEGER'),('description','TEXT'),('competition','TEXT')]:
     if name not in columns:c.execute(f'alter table catalog_view_items add column {name} {kind}')
+   team_columns={x['name'] for x in c.execute('pragma table_info(catalog_view_teams)')}
+   if 'logo_media_key' not in team_columns:c.execute('alter table catalog_view_teams add column logo_media_key TEXT')
+   country_columns={x['name'] for x in c.execute('pragma table_info(catalog_view_countries)')}
+   if 'logo_media_key' not in country_columns:c.execute('alter table catalog_view_countries add column logo_media_key TEXT')
  @staticmethod
  def camel(row):
   out={}
@@ -36,9 +40,11 @@ class CatalogViewRepository:
   with self.database.connect() as c:
    build=c.execute('select catalog_build_id from catalog_normalization_runs where id=?',(normalization_run_id,)).fetchone()['catalog_build_id']
    result={k:[dict(x) for x in c.execute(f'select * from {t} where normalization_run_id=? order by id',(normalization_run_id,))] for k,t in {'countries':'catalog_normalized_countries','teams':'catalog_normalized_teams','collections':'catalog_normalized_collections'}.items()}
-   result['items']=[dict(x) for x in c.execute('''select n.*,i.item_type source_item_type from catalog_normalized_items n join catalog_items i on i.id=n.source_entity_id and i.build_run_id=? where n.normalization_run_id=? order by n.id''',(build,normalization_run_id))]
+   result['items']=[dict(x) for x in c.execute('''select n.*,i.item_type source_item_type,i.editorial_description source_editorial_description,i.editorial_status source_editorial_status,i.editorial_anchor source_editorial_anchor from catalog_normalized_items n join catalog_items i on i.id=n.source_entity_id and i.build_run_id=? where n.normalization_run_id=? order by n.id''',(build,normalization_run_id))]
    result['media']=[dict(x) for x in c.execute('''select r.catalog_item_id source_item_id,r.image_metadata_id,r.display_order,r.alt_text,r.is_primary_candidate,m.inventory_item_id,m.filename,m.extension,m.width,m.height,m.aspect_ratio,m.format,m.valid_image,m.readable from catalog_item_images r join image_metadata m on m.id=r.image_metadata_id where r.build_run_id=? order by r.catalog_item_id,coalesce(r.display_order,2147483647),r.id''',(build,))]
    result['editorial']=[dict(x) for x in c.execute('''select p.relative_path source_page,r.referenced_inventory_item_id inventory_item_id,x.context_text,x.status from html_image_contexts x join html_pages p on p.id=x.html_page_id join html_image_references r on r.id=x.image_reference_id where p.run_id=(select id from html_parse_runs where status in ('completed','completed_with_errors') order by id desc limit 1)''')]
+   result['branding']=[dict(x) for x in c.execute('''select b.team_stable_key,b.status,m.inventory_item_id,m.filename,m.extension,m.width,m.height,m.aspect_ratio,m.format,m.valid_image,m.readable from team_branding b join team_branding_runs r on r.id=b.branding_run_id left join image_metadata m on m.inventory_item_id=b.inventory_reference where r.status='completed' and r.id=(select id from team_branding_runs where status='completed' order by id desc limit 1)''')]
+   result['country_branding']=[dict(x) for x in c.execute('''select b.country_stable_key,b.status,m.inventory_item_id,m.filename,m.extension,m.width,m.height,m.aspect_ratio,m.format,m.valid_image,m.readable from country_branding b join country_branding_runs r on r.id=b.branding_run_id left join image_metadata m on m.inventory_item_id=b.inventory_reference where r.status='completed' and r.id=(select id from country_branding_runs where status='completed' order by id desc limit 1)''')]
   return result
  def persist(self,run,entities,media):
   c=self.database.connect()
@@ -52,7 +58,7 @@ class CatalogViewRepository:
       season=season_from(row.get('original_title'),row.get('source_page_reference'));context=None;inventory=media_inventory.get(row.get('primary_media_key'))
       if inventory:
        context=c.execute('''select x.context_text from html_image_contexts x join html_pages p on p.id=x.html_page_id join html_image_references r on r.id=x.image_reference_id where lower(replace(p.relative_path,'\\','/'))=lower(?) and r.referenced_inventory_item_id=? and x.status='matched' order by x.id desc limit 1''',(row.get('source_page_reference'),inventory)).fetchone()
-      row={**row,'season_label':season['label'] if season else None,'season_start_year':season['start'] if season else None,'season_end_year':season['end'] if season else None,'description':context['context_text'] if context else None,'competition':None}
+      row={**row,'season_label':season['label'] if season else None,'season_start_year':season['start'] if season else None,'season_end_year':season['end'] if season else None,'description':row.get('description') or (context['context_text'] if context else None),'competition':None}
      data={'view_run_id':rid,**row};cs=','.join(data);ms=','.join('?' for _ in data);c.execute(f'insert into {TABLES[kind]}({cs}) values({ms})',tuple(data.values()))
    for row in media:
     data={'view_run_id':rid,**row};cs=','.join(data);ms=','.join('?' for _ in data);c.execute(f'insert into catalog_view_media({cs}) values({ms})',tuple(data.values()))
@@ -76,13 +82,14 @@ class CatalogViewRepository:
   x['mediaKey']=None if enrichment is None else enrichment['media_key'];x['mediaUrl']=None if enrichment is None or not enrichment['available'] or not enrichment['valid'] or enrichment['format']=='SVG' else f"/api/media/assets/{enrichment['media_key']}"
   x['isPrimaryCandidate']=bool(x.get('isPrimaryCandidate'));return x
  def _public(self,c,run_id,row,media_map=None):
-  x=self.camel(row);key=x.pop('primaryMediaKey',None)
+  x=self.camel(row);key=x.pop('primaryMediaKey',None);logo_key=x.pop('logoMediaKey',None)
   for k in ('id','viewRunId'):x.pop(k,None)
   x['primaryMedia']=media_map.get(key) if media_map is not None and key else self._media(c,run_id,key)
+  if 'logo_media_key' in row.keys():x['logoMedia']=media_map.get(logo_key) if media_map is not None and logo_key else self._media(c,run_id,logo_key)
   if 'breadcrumbsJson' in x:x['breadcrumbs']=json.loads(x.pop('breadcrumbsJson'))
   return x
  def _public_many(self,c,run_id,rows):
-  keys=[r['primary_media_key'] for r in rows if 'primary_media_key' in r.keys() and r['primary_media_key']]
+  keys=[r[k] for r in rows for k in ('primary_media_key','logo_media_key') if k in r.keys() and r[k]]
   media_map={}
   if keys:
    marks=','.join('?' for _ in keys)
@@ -123,6 +130,17 @@ class CatalogViewRepository:
   with self.database.connect() as c:r=c.execute(f'select * from catalog_view_items where view_run_id=? and country_slug=? and team_slug=? and {cond} and slug=?',params).fetchone()
   if not r:return None
   value=self._public(c,rid,r);rows=c.execute('select * from catalog_view_media where view_run_id=? and item_public_route=? order by coalesce(display_order,2147483647),id',(rid,r['public_route'])).fetchall();enrichments=self._media_enrichments(c,rid,[x['public_media_key'] for x in rows]);value['media']=[self._public_media(x,enrichments.get(x['public_media_key'])) for x in rows];return value
+ def season_detail(self,country,team,season):
+  rid=self.latest_run_id()
+  with self.database.connect() as c:
+   tr=c.execute('select * from catalog_view_teams where view_run_id=? and country_slug=? and slug=?',(rid or -1,country,team)).fetchone();cr=c.execute('select * from catalog_view_countries where view_run_id=? and slug=?',(rid or -1,country)).fetchone()
+   if not tr or not cr:return None
+   rows=c.execute('select * from catalog_view_items where view_run_id=? and country_slug=? and team_slug=? and season_label=? order by id',(rid,country,team,season)).fetchall()
+   if not rows:return None
+   items=[]
+   for row in rows:
+    value=self._public(c,rid,row);value.pop('sourcePageReference',None);media=c.execute('select * from catalog_view_media where view_run_id=? and item_public_route=? order by coalesce(display_order,2147483647),id',(rid,row['public_route'])).fetchall();enrichments=self._media_enrichments(c,rid,[x['public_media_key'] for x in media]);value['media']=[self._public_media(x,enrichments.get(x['public_media_key'])) for x in media];items.append(value)
+  return {'country':self._public(c,rid,cr),'team':self._public(c,rid,tr),'season':season,'records':items,'summary':{'records':len(items),'images':sum(x['imagesCount'] for x in items)}}
  def navigation(self):
   p=self.page('countries',100,0,{})
   return {'countries':[{'slug':x['slug'],'name':x['name'],'teamsCount':x['teamsCount'],'status':x['publicStatus']} for x in p['items']]}

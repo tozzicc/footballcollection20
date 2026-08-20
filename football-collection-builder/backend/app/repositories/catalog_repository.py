@@ -10,7 +10,11 @@ class CatalogRepository:
     def __init__(self, database_path: str | Path = DEFAULT_DATABASE_PATH): self.database=Database(database_path)
     def create_schema(self):
         with self.database.connect() as c:
-            c.executescript(SCHEMA_SQL);self._backfill_stable_keys(c)
+            c.executescript(SCHEMA_SQL)
+            columns={x['name'] for x in c.execute('pragma table_info(catalog_items)')}
+            for name,definition in [('editorial_anchor',"TEXT NOT NULL DEFAULT 'page'"),('editorial_status',"TEXT NOT NULL DEFAULT 'unsupported'"),('editorial_rule','TEXT'),('editorial_description','TEXT')]:
+                if name not in columns:c.execute(f'alter table catalog_items add column {name} {definition}')
+            self._backfill_stable_keys(c)
     @staticmethod
     def stable_key(entity_type, *parts):
         canonical='|'.join(str(x or '').replace('\\','/').strip('/').casefold() for x in parts)
@@ -45,8 +49,9 @@ class CatalogRepository:
             folders=[dict(r) for r in c.execute('SELECT relative_path,name,depth FROM inventory_folders ORDER BY depth,relative_path')]
             pages=[dict(r) for r in c.execute("SELECT * FROM html_pages WHERE run_id=(SELECT id FROM html_parse_runs WHERE status IN ('completed','completed_with_errors') ORDER BY id DESC LIMIT 1) AND parse_status='parsed' ORDER BY relative_path")]
             refs=[dict(r) for r in c.execute('SELECT * FROM html_image_references WHERE page_id IN (SELECT id FROM html_pages WHERE run_id=(SELECT id FROM html_parse_runs WHERE status IN (\'completed\',\'completed_with_errors\') ORDER BY id DESC LIMIT 1)) ORDER BY page_id,id')]
+            contexts=[dict(r) for r in c.execute('SELECT * FROM html_image_contexts WHERE html_page_id IN (SELECT id FROM html_pages WHERE run_id=(SELECT id FROM html_parse_runs WHERE status IN (\'completed\',\'completed_with_errors\') ORDER BY id DESC LIMIT 1)) ORDER BY html_page_id,dom_order,id')]
             images=[dict(r) for r in c.execute("SELECT id,inventory_item_id,relative_path FROM image_metadata WHERE run_id=(SELECT id FROM image_parse_runs WHERE status IN ('completed','completed_with_errors') ORDER BY id DESC LIMIT 1)")]
-        return folders,pages,refs,images
+        return folders,pages,refs,images,contexts
     def save_build(self, run, countries, teams, collections, items, relations, inferences, issues, replace_previous=True):
         self.create_schema(); c=self.database.connect()
         try:
@@ -67,7 +72,7 @@ class CatalogRepository:
                 c.execute('INSERT INTO catalog_stable_keys(build_run_id,entity_type,entity_id,stable_key) VALUES(?,?,?,?)',(rid,'collection',row,self.stable_key('collection',self.stable_key('team',self.stable_key('country',countries[teams[x[0]][0]][3]) if teams[x[0]][0] in countries else '',teams[x[0]][4]),x[3])))
             item_ids={}
             for key,x in items.items():
-                row=c.execute('INSERT INTO catalog_items(build_run_id,team_id,collection_id,source_page_id,original_title,title,relative_path,slug,item_type,confidence,source) VALUES(?,?,?,?,?,?,?,?,?,?,?)',(rid,team_ids[x[0]],collection_ids.get(x[1]),*x[2:])).lastrowid; item_ids[key]=int(row)
+                row=c.execute('INSERT INTO catalog_items(build_run_id,team_id,collection_id,source_page_id,original_title,title,relative_path,slug,item_type,confidence,source,editorial_anchor,editorial_status,editorial_rule,editorial_description) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(rid,team_ids[x[0]],collection_ids.get(x[1]),*x[2:])).lastrowid; item_ids[key]=int(row)
                 parent_id=collection_ids.get(x[1]) or team_ids[x[0]];parent_type='collection' if x[1] in collection_ids else 'team';parent=c.execute('SELECT stable_key FROM catalog_stable_keys WHERE build_run_id=? AND entity_type=? AND entity_id=?',(rid,parent_type,parent_id)).fetchone()['stable_key'];c.execute('INSERT INTO catalog_stable_keys(build_run_id,entity_type,entity_id,stable_key) VALUES(?,?,?,?)',(rid,'item',row,self.stable_key('item',parent,x[5])))
             c.executemany('INSERT INTO catalog_item_images(build_run_id,catalog_item_id,image_metadata_id,source_page_id,reference_original,relative_path,display_order,alt_text,is_primary_candidate) VALUES(?,?,?,?,?,?,?,?,?)',[(rid,item_ids[x[0]],*x[1:]) for x in relations])
             c.executemany('INSERT INTO catalog_inferences(build_run_id,entity_type,entity_id,field,value,source,source_reference,confidence,reason) VALUES(?,?,?,?,?,?,?,?,?)',[(rid,x[0],team_ids.get(x[1],country_ids.get(x[1],item_ids.get(x[1],0))),*x[2:]) for x in inferences])

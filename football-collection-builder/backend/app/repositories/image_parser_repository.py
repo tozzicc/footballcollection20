@@ -22,6 +22,12 @@ class ImageParserRepository:
         try:
             c.execute('PRAGMA foreign_keys=ON'); c.execute('BEGIN')
             if replace_previous:
+                dependent=c.execute('SELECT count(*) n FROM catalog_item_images').fetchone()['n']
+                if dependent:
+                    raise ValueError(
+                        f'Image Parser replacement blocked: {dependent} Catalog image relations depend on '
+                        'the current image metadata. Rebuild/coordinate the Catalog after the parser run.'
+                    )
                 for table in reversed(IMAGE_PARSER_TABLES): c.execute(f'DELETE FROM {table}')
             cur=c.execute("""INSERT INTO image_parse_runs(workspace_path,started_at,finished_at,duration_ms,status,total_images,valid_images,invalid_images,referenced_images,orphan_images,broken_references,html_audit_available,total_size,average_width,average_height,max_width,max_height,message) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (run.workspacePath,run.startedAt,run.finishedAt,run.durationMs,run.status,run.totalImages,run.validImages,run.invalidImages,run.referencedImages,run.orphanImages,run.brokenReferences,int(run.htmlAuditAvailable),run.totalSize,run.averageWidth,run.averageHeight,run.maxWidth,run.maxHeight,run.message))

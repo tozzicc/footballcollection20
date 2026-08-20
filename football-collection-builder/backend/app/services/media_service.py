@@ -23,7 +23,7 @@ class MediaService:
   for row in rows:
    key=media_key(row['relative_path']);existing=relation_map.get(row['public_media_key'])
    if existing and existing['media_key']!=key:raise ValueError('Colisão inconsistente de referência lógica de mídia.')
-   relation_map[row['public_media_key']]={'view_public_media_key':row['public_media_key'],'media_key':key}
+   relation_map[row['public_media_key']]={'view_public_media_key':row['public_media_key'],'media_key':key,'source_type':row.get('source_type','catalog_view')}
    if key in assets:continue
    relative_text=row['relative_path'].replace('\\','/');relative=PurePosixPath(relative_text);safe=not relative.is_absolute() and '..' not in relative.parts and ':' not in relative_text and not relative_text.startswith('//')
    available=safe and bool(row['readable']);valid=bool(row['valid_image']);fmt=(row['format'] or '').upper();mime=MIME_BY_FORMAT.get(fmt,'application/octet-stream');stamp=now();assets[key]={'media_key':key,'inventory_reference':row['inventory_reference'],'relative_path':relative_text,'filename':Path(row['relative_path']).name,'extension':row['extension'].lower(),'format':fmt or None,'mime_type':mime,'file_size':row['file_size'],'width':row['width'],'height':row['height'],'aspect_ratio':row['aspect_ratio'],'valid':int(valid),'available':int(available),'modified_at':row['modified_at'],'created_at':stamp,'updated_at':stamp}

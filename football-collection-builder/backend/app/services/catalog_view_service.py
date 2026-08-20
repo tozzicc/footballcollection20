@@ -4,7 +4,7 @@ from datetime import datetime,timezone
 from app.repositories.catalog_view_repository import CatalogViewRepository
 from app.services.catalog_public_routes import item_breadcrumbs,public_item_route
 
-VIEW_SCHEMA_VERSION='1.1.0'
+VIEW_SCHEMA_VERSION='1.4.0'
 def now():return datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
 def public_status(row,required):
  if any(not row.get(x) for x in required):return 'unavailable'
@@ -43,6 +43,16 @@ class CatalogViewService:
     key=media_key(f"{m['inventory_item_id']}|{occurrences[m['inventory_item_id']]}")
     row={'item_public_route':route_by_item[x['id']],'public_media_key':key,'inventory_reference':m['inventory_item_id'],'filename':m['filename'],'extension':m['extension'],'width':m['width'],'height':m['height'],'aspect_ratio':m['aspect_ratio'],'format':m['format'],'alt_text':m['alt_text'],'display_order':m['display_order'],'is_primary_candidate':int(bool(m['is_primary_candidate'])),'media_source':'catalog_relation','availability_status':'available' if m['valid_image'] and m['readable'] else 'unavailable'};logical.append(row);media_rows.append(row)
    logical.sort(key=lambda m:(not bool(m['is_primary_candidate']),m['display_order'] is None,m['display_order'] or 0,m['public_media_key']));public_media_by_item[x['id']]=logical
+  branding_by_team={}
+  for brand in src.get('branding',[]):
+   if brand['status']!='matched' or not brand.get('inventory_item_id'):continue
+   key=media_key(f"team-logo|{brand['inventory_item_id']}");branding_by_team[brand['team_stable_key']]=key
+   media_rows.append({'item_public_route':f"/branding/teams/{key}",'public_media_key':key,'inventory_reference':brand['inventory_item_id'],'filename':brand['filename'],'extension':brand['extension'],'width':brand['width'],'height':brand['height'],'aspect_ratio':brand['aspect_ratio'],'format':brand['format'],'alt_text':None,'display_order':0,'is_primary_candidate':1,'media_source':'team_branding','availability_status':'available' if brand['valid_image'] and brand['readable'] else 'unavailable'})
+  branding_by_country={}
+  for brand in src.get('country_branding',[]):
+   if brand['status']!='matched' or not brand.get('inventory_item_id'):continue
+   key=media_key(f"country-logo|{brand['inventory_item_id']}");branding_by_country[brand['country_stable_key']]=key
+   media_rows.append({'item_public_route':f"/branding/countries/{key}",'public_media_key':key,'inventory_reference':brand['inventory_item_id'],'filename':brand['filename'],'extension':brand['extension'],'width':brand['width'],'height':brand['height'],'aspect_ratio':brand['aspect_ratio'],'format':brand['format'],'alt_text':None,'display_order':0,'is_primary_candidate':1,'media_source':'country_branding','availability_status':'available' if brand['valid_image'] and brand['readable'] else 'unavailable'})
   def primary_for(entity_items):
    for item in sorted(entity_items,key=lambda z:z['id']):
     available=[m for m in public_media_by_item.get(item['id'],[]) if m['availability_status']=='available']
@@ -50,15 +60,15 @@ class CatalogViewService:
    return None
   country_team_count={k:sum(1 for t in teams.values() if t.get('country_stable_key')==k) for k in countries};country_collection_count={k:sum(1 for co in collections.values() if co.get('country_stable_key')==k) for k in countries}
   output={'countries':[],'teams':[],'collections':[],'items':[]}
-  for key,x in countries.items():output['countries'].append({'slug':x['slug'],'name':x['display_name'],'original_name':x['original_name'],'teams_count':country_team_count[key],'collections_count':country_collection_count[key],'items_count':len(country_items.get(key,[])),'primary_media_key':primary_for(country_items.get(key,[])),'public_status':public_status(x,['slug','display_name'])})
+  for key,x in countries.items():output['countries'].append({'slug':x['slug'],'name':x['display_name'],'original_name':x['original_name'],'teams_count':country_team_count[key],'collections_count':country_collection_count[key],'items_count':len(country_items.get(key,[])),'primary_media_key':primary_for(country_items.get(key,[])),'logo_media_key':branding_by_country.get(key),'public_status':public_status(x,['slug','display_name'])})
   for key,x in teams.items():
    country=countries.get(x.get('country_stable_key'));own=team_items.get(key,[]);cols=[co for co in collections.values() if co['team_stable_key']==key];latest=sorted([co for co in cols if co.get('inclusion_year') is not None],key=lambda z:(z['inclusion_year'],z.get('inclusion_month') or 0,z.get('inclusion_batch') or 0),reverse=True)
-   output['teams'].append({'slug':x['slug'],'country_slug':country['slug'] if country else '','name':x['display_name'],'original_name':x['original_name'],'collections_count':len(cols),'items_count':len(own),'images_count':sum(len(public_media_by_item.get(i['id'],[])) for i in own),'primary_media_key':primary_for(own),'latest_inclusion_period':latest[0]['inclusion_period'] if latest else None,'public_status':public_status(x,['slug','display_name']) if country else 'unavailable'})
+   output['teams'].append({'slug':x['slug'],'country_slug':country['slug'] if country else '','name':x['display_name'],'original_name':x['original_name'],'collections_count':len(cols),'items_count':len(own),'images_count':sum(len(public_media_by_item.get(i['id'],[])) for i in own),'primary_media_key':primary_for(own),'latest_inclusion_period':latest[0]['inclusion_period'] if latest else None,'logo_media_key':branding_by_team.get(key),'public_status':public_status(x,['slug','display_name']) if country else 'unavailable'})
   for key,x in collections.items():
    team=teams.get(x['team_stable_key']);country=countries.get(x.get('country_stable_key'));own=collection_items.get(key,[])
    output['collections'].append({'slug':x['slug'],'country_slug':country['slug'] if country else '','team_slug':team['slug'] if team else '','name':x['display_name'],'original_name':x['original_name'],'collection_type':x['collection_type'],'inclusion_month':x['inclusion_month'],'inclusion_year':x['inclusion_year'],'inclusion_batch':x['inclusion_batch'],'display_period':x['inclusion_period'],'items_count':len(own),'images_count':sum(len(public_media_by_item.get(i['id'],[])) for i in own),'primary_media_key':primary_for(own),'public_status':public_status(x,['slug','display_name']) if team and country else 'unavailable'})
   for x in items:
    team=teams.get(x['team_stable_key']);country=countries.get(x.get('country_stable_key'));collection=collections.get(x.get('collection_stable_key'));logical=public_media_by_item.get(x['id'],[]);available=[m for m in logical if m['availability_status']=='available']
-   output['items'].append({'slug':x['slug'],'country_slug':country['slug'] if country else '','team_slug':team['slug'] if team else '','collection_slug':collection['slug'] if collection else None,'title':x['display_title'],'original_title':x['original_title'],'item_type':x['source_item_type'],'source_page_reference':x['source_page'].replace('\\','/'),'images_count':len(logical),'primary_media_key':available[0]['public_media_key'] if available else None,'public_status':public_status(x,['slug','display_title']) if route_by_item[x['id']] else 'unavailable','public_route':route_by_item[x['id']],'breadcrumbs_json':json.dumps(breadcrumbs_by_item[x['id']],ensure_ascii=False)})
+   output['items'].append({'slug':x['slug'],'country_slug':country['slug'] if country else '','team_slug':team['slug'] if team else '','collection_slug':collection['slug'] if collection else None,'title':x['display_title'],'original_title':x['original_title'],'item_type':x['source_item_type'],'source_page_reference':x['source_page'].replace('\\','/'),'images_count':len(logical),'primary_media_key':available[0]['public_media_key'] if available else None,'public_status':public_status(x,['slug','display_title']) if route_by_item[x['id']] else 'unavailable','public_route':route_by_item[x['id']],'breadcrumbs_json':json.dumps(breadcrumbs_by_item[x['id']],ensure_ascii=False),'description':x.get('source_editorial_description')})
   statuses=[x['public_status'] for rows in output.values() for x in rows];duration=int((time.perf_counter()-clock)*1000);run={'normalization_run_id':normalization['id'],'started_at':started,'completed_at':now(),'status':'completed','countries':len(output['countries']),'teams':len(output['teams']),'collections':len(output['collections']),'items':len(output['items']),'media_relations':len(media_rows),'ready':statuses.count('ready'),'review_required':statuses.count('review_required'),'unavailable':statuses.count('unavailable'),'duration_ms':duration,'schema_version':VIEW_SCHEMA_VERSION,'error_message':None}
   rid=self.repository.persist(run,output,media_rows);return {'viewRun':rid,**run,'uniqueRoutes':len(route_set)}

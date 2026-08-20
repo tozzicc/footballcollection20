@@ -71,6 +71,12 @@ class HtmlImageContext(BaseModel):
     containerType: str | None = None
     contextText: str | None = None
     captionText: str | None = None
+    imageContainerDomIndex: int | None = None
+    descriptionContainerDomIndex: int | None = None
+    structuralGroupKey: str | None = None
+    imageContainerType: str | None = None
+    descriptionContainerType: str | None = None
+    structuralOrder: int | None = None
     extractionRule: str
     confidence: str
     status: Literal["matched", "ambiguous", "no_description", "unsupported_structure"]

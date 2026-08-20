@@ -6,6 +6,7 @@ from app.main import app
 from app.repositories.media_repository import MediaRepository
 from app.services.media_resolver import MediaResolutionError,MediaResolver
 from app.services.media_service import MEDIA_SCHEMA_VERSION,MIME_BY_FORMAT,MediaService,media_key
+from app.config.public_site import HERO_MEDIA_ITEMS
 
 def seed(db,workspace,extension='.jpg',fmt='JPEG',exists=True):
  repo=MediaRepository(db);repo.create_schema();relative='images/sample'+extension
@@ -24,6 +25,9 @@ def test_media_key_and_mimes_are_deterministic():
  assert media_key('Imagens\\Camisa.jpg')==media_key('imagens/camisa.jpg')
  assert media_key('a.jpg')!=media_key('b.jpg')
  assert MIME_BY_FORMAT['JPEG']=='image/jpeg' and MIME_BY_FORMAT['PNG']=='image/png' and MIME_BY_FORMAT['GIF']=='image/gif' and MIME_BY_FORMAT['WEBP']=='image/webp'
+ assert [x['relative_path'] for x in HERO_MEDIA_ITEMS]==['index/a.jpg','index/b.jpg','index/picture0004.jpg','index/picture0003.JPG','index/football-collection-hero-historico.jpg']
+ assert media_key(HERO_MEDIA_ITEMS[0]['relative_path'])=='b455b63c7f2a4b465c7b5dc15c224ad0eb6bb2d2efe9fbcfe136cd7a1876d104'
+ assert media_key(HERO_MEDIA_ITEMS[3]['relative_path'])=='2fa8a45be8db4a692570a5cb5542d643a1ddbedfb26e075f25823ee1b49f5595'
 
 def test_build_resolve_metadata_headers_and_safety(tmp_path,monkeypatch):
  repo=seed(tmp_path/'media.db',tmp_path/'workspace');service=MediaService(repo);result=service.build();assert result['schema_version']==MEDIA_SCHEMA_VERSION and result['unique_assets']==1 and result['available_assets']==1

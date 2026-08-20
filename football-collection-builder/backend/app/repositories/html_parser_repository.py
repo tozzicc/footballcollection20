@@ -20,6 +20,9 @@ class HtmlParserRepository:
     def create_schema(self) -> None:
         with self.database.connect() as connection:
             connection.executescript(SCHEMA_SQL)
+            columns={x['name'] for x in connection.execute('pragma table_info(html_image_contexts)')}
+            for name,kind in [('image_container_dom_index','INTEGER'),('description_container_dom_index','INTEGER'),('structural_group_key','TEXT'),('image_container_type','TEXT'),('description_container_type','TEXT'),('structural_order','INTEGER')]:
+                if name not in columns:connection.execute(f'alter table html_image_contexts add column {name} {kind}')
 
     def save_run(
         self, run: HtmlParseRun, pages: list[HtmlPageResult],
@@ -89,7 +92,7 @@ class HtmlParserRepository:
               x.heightDeclared, int(x.isExternal), x.resolvedRelativePath, x.resolvedAbsolutePath,
               int(x.existsInInventory), x.referencedInventoryItemId, x.status.value))
             image_ids.append(int(cursor.lastrowid))
-        connection.executemany("""INSERT INTO html_image_contexts(html_page_id,image_reference_id,reference_original,resolved_relative_path,dom_order,container_type,context_text,caption_text,extraction_rule,confidence,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,datetime('now'))""",[(page_id,image_ids[x.domOrder],x.referenceOriginal,x.resolvedRelativePath,x.domOrder,x.containerType,x.contextText,x.captionText,x.extractionRule,x.confidence,x.status) for x in page.imageContexts])
+        connection.executemany("""INSERT INTO html_image_contexts(html_page_id,image_reference_id,reference_original,resolved_relative_path,dom_order,container_type,context_text,caption_text,extraction_rule,confidence,status,image_container_dom_index,description_container_dom_index,structural_group_key,image_container_type,description_container_type,structural_order,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))""",[(page_id,image_ids[x.domOrder],x.referenceOriginal,x.resolvedRelativePath,x.domOrder,x.containerType,x.contextText,x.captionText,x.extractionRule,x.confidence,x.status,x.imageContainerDomIndex,x.descriptionContainerDomIndex,x.structuralGroupKey,x.imageContainerType,x.descriptionContainerType,x.structuralOrder) for x in page.imageContexts])
         connection.executemany(
             """INSERT INTO html_link_references(page_id,href_original,href_normalized,visible_text,
             title_text,is_external,is_anchor,is_mailto,is_javascript,resolved_relative_path,
@@ -176,7 +179,7 @@ class HtmlParserRepository:
                 resolvedAbsolutePath=x["resolved_absolute_path"], existsInInventory=bool(x["exists_in_inventory"]),
                 referencedInventoryItemId=x["referenced_inventory_item_id"], status=x["status"],
             ) for x in images],
-            imageContexts=[HtmlImageContext(domOrder=x['dom_order'],referenceOriginal=x['reference_original'],resolvedRelativePath=x['resolved_relative_path'],containerType=x['container_type'],contextText=x['context_text'],captionText=x['caption_text'],extractionRule=x['extraction_rule'],confidence=x['confidence'],status=x['status']) for x in contexts],
+            imageContexts=[HtmlImageContext(domOrder=x['dom_order'],referenceOriginal=x['reference_original'],resolvedRelativePath=x['resolved_relative_path'],containerType=x['container_type'],contextText=x['context_text'],captionText=x['caption_text'],extractionRule=x['extraction_rule'],confidence=x['confidence'],status=x['status'],imageContainerDomIndex=x['image_container_dom_index'],descriptionContainerDomIndex=x['description_container_dom_index'],structuralGroupKey=x['structural_group_key'],imageContainerType=x['image_container_type'],descriptionContainerType=x['description_container_type'],structuralOrder=x['structural_order']) for x in contexts],
             linkReferences=[HtmlLinkReference(
                 hrefOriginal=x["href_original"], hrefNormalized=x["href_normalized"], visibleText=x["visible_text"],
                 title=x["title_text"], isExternal=bool(x["is_external"]), isAnchor=bool(x["is_anchor"]),

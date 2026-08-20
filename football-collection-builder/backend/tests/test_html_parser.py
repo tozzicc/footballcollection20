@@ -142,11 +142,41 @@ def test_structural_image_contexts_are_conservative(tmp_path: Path):
     service=service_for(tmp_path,[item(tmp_path,'index.html','p'),item(tmp_path,'one.jpg','i1'),item(tmp_path,'two.jpg','i2')]);service.parse(HtmlParseRequest(workspacePath=str(tmp_path)));value=details(service)
     assert [x.status for x in value.imageContexts]==['matched','matched']
     assert all(x.contextText=='CAMISA HISTORICA - COPA' and x.extractionRule=='HX001' for x in value.imageContexts)
+    assert len({x.structuralGroupKey for x in value.imageContexts})==1
+    assert all(x.imageContainerDomIndex is not None and x.descriptionContainerDomIndex is not None for x in value.imageContexts)
+
+def test_repeated_hx001_descriptions_keep_distinct_deterministic_groups(tmp_path: Path):
+    for name in ('a.jpg','b.jpg','c.jpg','d.jpg'):(tmp_path/name).write_bytes(b'x')
+    page=tmp_path/'index.html';page.write_text('''<table><img src="a.jpg"><img src="b.jpg"></table><table>MESMA DESCRICAO</table><table><img src="c.jpg"><img src="d.jpg"></table><table>MESMA DESCRICAO</table>''',encoding='utf-8')
+    service=service_for(tmp_path,[item(tmp_path,'index.html','p'),*[item(tmp_path,f'{x}.jpg',x) for x in 'abcd']]);service.parse(HtmlParseRequest(workspacePath=str(tmp_path)));first=details(service).imageContexts
+    service.parse(HtmlParseRequest(workspacePath=str(tmp_path)));second=details(service).imageContexts
+    assert [x.structuralGroupKey for x in first]==[x.structuralGroupKey for x in second]
+    assert first[0].structuralGroupKey==first[1].structuralGroupKey and first[2].structuralGroupKey==first[3].structuralGroupKey
+    assert first[0].structuralGroupKey!=first[2].structuralGroupKey
+    assert first[0].imageContainerDomIndex!=first[2].imageContainerDomIndex
+    assert first[0].descriptionContainerDomIndex!=first[2].descriptionContainerDomIndex
+
+@pytest.mark.parametrize(("markup", "rule", "container_type"), [
+    ('<table><tr><td><img src="one.jpg">CAMISA NA CELULA</td></tr></table>', 'HX002', 'td'),
+    ('<figure><img src="one.jpg"><figcaption>CAMISA NO BLOCO</figcaption></figure>', 'HX003', 'figure'),
+])
+def test_cell_and_block_contexts_persist_structural_identity(
+    tmp_path: Path, markup: str, rule: str, container_type: str,
+):
+    (tmp_path/'one.jpg').write_bytes(b'x')
+    page=tmp_path/'index.html';page.write_text(markup,encoding='utf-8')
+    service=service_for(tmp_path,[item(tmp_path,'index.html','p'),item(tmp_path,'one.jpg','i1')])
+    service.parse(HtmlParseRequest(workspacePath=str(tmp_path)));context=details(service).imageContexts[0]
+    assert context.status=='matched' and context.extractionRule==rule
+    assert context.structuralGroupKey and context.imageContainerType==container_type
+    assert context.descriptionContainerType==container_type
+    assert context.imageContainerDomIndex==context.descriptionContainerDomIndex
 
 def test_ambiguous_and_missing_image_contexts(tmp_path: Path):
     for name in ('one.jpg','two.jpg'): (tmp_path/name).write_bytes(b'x')
     page=tmp_path/'index.html';page.write_text('<div><img src="one.jpg"><img src="two.jpg">texto compartilhado</div><img src="one.jpg">',encoding='utf-8')
     service=service_for(tmp_path,[item(tmp_path,'index.html','p'),item(tmp_path,'one.jpg','i1'),item(tmp_path,'two.jpg','i2')]);service.parse(HtmlParseRequest(workspacePath=str(tmp_path)));contexts=details(service).imageContexts
     assert contexts[0].status=='ambiguous' and contexts[1].status=='ambiguous'
+    assert contexts[0].structuralGroupKey==contexts[1].structuralGroupKey
     assert contexts[2].status=='unsupported_structure' and contexts[2].contextText is None
 

@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:team-names": "node --experimental-strip-types src/public/utils/teamDisplayName.test.mjs && node --experimental-strip-types src/public/utils/countryDisplayName.test.mjs",
+    "test:public-search": "node --experimental-strip-types src/public/utils/publicSearch.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

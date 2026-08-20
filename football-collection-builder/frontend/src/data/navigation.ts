@@ -13,6 +13,7 @@ const navigation: NavigationItem[] = [
   { id: 'catalog-normalization', label: 'Normalização do Catálogo', path: '/normalizacao-catalogo', description: 'Camada editorial não destrutiva do catálogo' },
   { id: 'public-catalog-model', label: 'Modelo do Site', path: '/modelo-publico', description: 'Contrato de apresentação do futuro site público' },
   { id: 'media-layer', label: 'Mídia do Site', path: '/midia-site', description: 'Acesso seguro e somente leitura às imagens' },
+  { id: 'historical-collections', label: 'Coleções Históricas', path: '/colecoes-historicas', description: 'Flâmulas, bandeiras e memorabilia' },
   { id: 'public-site', label: 'Abrir primeira versão do site', path: '/site', description: 'Experiência pública navegável do Football Collection 2.0' },
   { id: 'reports', label: 'Relatórios', path: '/relatorios', description: 'Integridade, duplicidades e arquivos órfãos' },
   { id: 'exports', label: 'Exportações', path: '/exportacoes', description: 'Geração de JSON e pacotes de exportação' },

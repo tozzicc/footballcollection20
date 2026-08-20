@@ -18,8 +18,14 @@ import LogsPage from '../pages/LogsPage'
 import SettingsPage from '../pages/SettingsPage'
 import NotFoundPage from '../pages/NotFoundPage'
 import PublicLayout from '../public/layout/PublicLayout'
-import { PublicCountriesPage, PublicCountryPage, PublicNotFoundPage, PublicSearchPage, PublicTeamsPage } from '../public/pages/PublicPages'
-import { PublicCollectionEditorialPage, PublicHomeEditorialPage, PublicItemEditorialPage, PublicLatestEditorialPage, PublicTeamEditorialPage } from '../public/pages/PublicEditorialPages'
+import { PublicCountriesPage, PublicNotFoundPage, PublicSearchPage, PublicTeamsPage } from '../public/pages/PublicPages'
+import { PublicCollectionEditorialPage, PublicHomeEditorialPage, PublicItemEditorialPage, PublicLatestEditorialPage } from '../public/pages/PublicEditorialPages'
+import PublicCountryAllTeamsPage from '../public/pages/PublicCountryAllTeamsPage'
+import { PublicSeasonPage,PublicTeamSeasonsPage } from '../public/pages/PublicSeasonPages'
+import { PublicHistoricalCollectionsHome,PublicHistoricalItemPage,PublicHistoricalItemsPage,PublicPennantsHome } from '../public/pages/PublicHistoricalCollectionsPages'
+import HistoricalCollectionsPage from '../pages/HistoricalCollectionsPage'
+import PublicChicaoMemorialPage from '../public/pages/PublicChicaoMemorialPage'
+import PublicChicaoShirtMemorialPage from '../public/pages/PublicChicaoShirtMemorialPage'
 
 const AppRouter = () => (
   <BrowserRouter>
@@ -27,14 +33,24 @@ const AppRouter = () => (
       <Route path="/site" element={<PublicLayout />}>
         <Route index element={<PublicHomeEditorialPage />} />
         <Route path="paises" element={<PublicCountriesPage />} />
-        <Route path="paises/:countrySlug" element={<PublicCountryPage />} />
+        <Route path="paises/:countrySlug" element={<PublicCountryAllTeamsPage />} />
         <Route path="equipes" element={<PublicTeamsPage />} />
-        <Route path="paises/:countrySlug/equipes/:teamSlug" element={<PublicTeamEditorialPage />} />
+        <Route path="paises/:countrySlug/equipes/:teamSlug" element={<PublicTeamSeasonsPage />} />
+        <Route path="paises/:countrySlug/equipes/:teamSlug/temporadas/:season" element={<PublicSeasonPage />} />
         <Route path="paises/:countrySlug/equipes/:teamSlug/collections/:collectionSlug" element={<PublicCollectionEditorialPage />} />
         <Route path="items/:countrySlug/teams/:teamSlug/collections/:collectionSlug/:itemSlug" element={<PublicItemEditorialPage />} />
         <Route path="items/:countrySlug/teams/:teamSlug/items/:itemSlug" element={<PublicItemEditorialPage />} />
         <Route path="busca" element={<PublicSearchPage />} />
         <Route path="ultimas" element={<PublicLatestEditorialPage />} />
+        <Route path="colecoes" element={<PublicHistoricalCollectionsHome />} />
+        <Route path="colecoes/flamulas" element={<PublicPennantsHome />} />
+        <Route path="colecoes/flamulas/:group" element={<PublicHistoricalItemsPage section="pennants" />} />
+        <Route path="colecoes/bandeiras" element={<PublicHistoricalItemsPage section="flags" />} />
+        <Route path="colecoes/bandeiras/:slug" element={<PublicHistoricalItemPage section="flags" />} />
+        <Route path="colecoes/memorabilia" element={<PublicHistoricalItemsPage section="memorabilia" />} />
+        <Route path="colecoes/memorabilia/:slug" element={<PublicHistoricalItemPage section="memorabilia" />} />
+        <Route path="chicao" element={<PublicChicaoMemorialPage />} />
+        <Route path="chicao/camisas/:memorialSlug" element={<PublicChicaoShirtMemorialPage />} />
         <Route path="*" element={<PublicNotFoundPage />} />
       </Route>
       <Route path="/" element={<AppShell />}>
@@ -51,6 +67,7 @@ const AppRouter = () => (
         <Route path="normalizacao-catalogo" element={<CatalogNormalizationPage />} />
         <Route path="modelo-publico" element={<PublicCatalogModelPage />} />
         <Route path="midia-site" element={<MediaLayerPage />} />
+        <Route path="colecoes-historicas" element={<HistoricalCollectionsPage />} />
         <Route path="relatorios" element={<ReportsPage />} />
         <Route path="exportacoes" element={<ExportsPage />} />
         <Route path="logs" element={<LogsPage />} />

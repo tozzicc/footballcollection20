@@ -19,6 +19,12 @@ def seed(path,duplicate_direct=False):
   if duplicate_direct:items.append((4,None,'direct','Duplicate','unchanged'))
   for i,col,slug,title,status in items:c.execute("insert into catalog_normalized_items values(?,?,?,?,'team:key','country:key',?,?,?,?,?,?,?,?,?,?,?,?,?)",(i,1,f'item:{i}',i,col,title,f'page{i}.htm',title,title,slug,f'page{i}.htm',status,'original','high','[]','a','a'))
   c.execute("insert into image_metadata(id,run_id,inventory_item_id,relative_path,absolute_path,filename,extension,format,file_size,width,height,aspect_ratio,mode,has_alpha,animated,frame_count,readable,valid_image,validation_status,validation_message,reference_count,reference_status) values(1,1,'media:key','img.jpg','C:\\private\\img.jpg','img.jpg','.jpg','JPEG',10,100,200,.5,'RGB',0,0,1,1,1,'valid','ok',1,'referenced')")
+  c.execute("insert into image_metadata(id,run_id,inventory_item_id,relative_path,absolute_path,filename,extension,format,file_size,width,height,aspect_ratio,mode,has_alpha,animated,frame_count,readable,valid_image,validation_status,validation_message,reference_count,reference_status) values(2,1,'logo:key','logos/time.gif','C:\\private\\logo.gif','time.gif','.gif','GIF',10,60,60,1,'RGBA',1,0,1,1,1,'valid','ok',1,'referenced')")
+  c.execute("insert into image_metadata(id,run_id,inventory_item_id,relative_path,absolute_path,filename,extension,format,file_size,width,height,aspect_ratio,mode,has_alpha,animated,frame_count,readable,valid_image,validation_status,validation_message,reference_count,reference_status) values(3,1,'country-logo:key','logos/brasil.gif','C:\\private\\brasil.gif','brasil.gif','.gif','GIF',10,70,70,1,'RGBA',1,0,1,1,1,'valid','ok',1,'referenced')")
+  c.execute("insert into team_branding_runs(id,catalog_build_id,started_at,completed_at,status,teams,matched,unavailable,ambiguous,rules_version) values(1,1,'a','b','completed',1,1,0,0,'1.0.0')")
+  c.execute("insert into team_branding(branding_run_id,team_stable_key,inventory_reference,relative_path,source_page,rule_code,confidence,status) values(1,'team:key','logo:key','logos/time.gif','paises/brasil/time/time.htm','TB001_TEAM_LANDING_LOGOS_DIRECTORY','high','matched')")
+  c.execute("insert into country_branding_runs(id,catalog_build_id,started_at,completed_at,status,countries,matched,unavailable,ambiguous,rules_version) values(1,1,'a','b','completed',1,1,0,0,'1.0.0')")
+  c.execute("insert into country_branding(branding_run_id,country_stable_key,inventory_reference,relative_path,source_page,rule_code,confidence,status) values(1,'country:key','country-logo:key','logos/brasil.gif','paises/brasil/brazil.htm','CB001_COUNTRY_LANDING_HEADER_LOGO','high','matched')")
   c.execute("insert into catalog_item_images(id,build_run_id,catalog_item_id,image_metadata_id,reference_original,relative_path,display_order,alt_text,is_primary_candidate) values(1,1,1,1,'img.jpg','img.jpg',2,'secondary',0)")
   c.execute("insert into catalog_item_images(id,build_run_id,catalog_item_id,image_metadata_id,reference_original,relative_path,display_order,alt_text,is_primary_candidate) values(2,1,1,1,'img.jpg','img.jpg',5,'primary',1)")
   c.commit()
@@ -35,13 +41,19 @@ def test_route_helper_and_breadcrumbs_are_deterministic():
 def test_build_public_models_media_routes_search_latest_and_safety(tmp_path,monkeypatch):
  repo=seed(tmp_path/'view.db');service=CatalogViewService(repo);first=service.build();second=service.build()
  assert first['schema_version']==VIEW_SCHEMA_VERSION and second['viewRun']!=first['viewRun']
- assert first['countries']==1 and first['items']==3 and first['media_relations']==2 and first['uniqueRoutes']==3
+ assert first['countries']==1 and first['items']==3 and first['media_relations']==4 and first['uniqueRoutes']==3
  items=repo.page('items',24,0,{})['items'];routes={x['publicRoute'] for x in items};assert len(routes)==3
  assert '/items/brasil/teams/time-fc/collections/08-2023/same' in routes
  assert '/items/brasil/teams/time-fc/collections/09-2024/same' in routes
  assert '/items/brasil/teams/time-fc/items/direct' in routes
  detail=repo.item_detail('brasil','time-fc','same','08-2023');assert detail['primaryMedia']['altText']=='primary' and any(x['isPrimaryCandidate'] for x in detail['media'])
+ team=repo.team_detail('brasil','time-fc')['team'];assert team['logoMedia']['filename']=='time.gif' and team['primaryMedia']['filename']=='img.jpg'
+ country=repo.country_detail('brasil')['country'];assert country['logoMedia']['filename']=='brasil.gif' and country['primaryMedia']['filename']=='img.jpg'
  assert repo.item_detail('brasil','time-fc','direct')['primaryMedia'] is None
+ with repo.database.connect() as c:c.execute("update catalog_view_items set season_label='2024' where view_run_id=(select max(id) from catalog_view_runs) and collection_slug is not null");c.commit()
+ season=repo.season_detail('brasil','time-fc','2024');assert season['summary']=={'records':2,'images':2} and len(season['records'][0]['media'])==2
+ assert 'sourcePageReference' not in season['records'][0]
+ assert repo.season_detail('brasil','time-fc','1900') is None
  assert repo.page('items',1,0,{})['hasNext']
  assert any(x['publicStatus']=='review_required' for x in items)
  assert repo.page('collections',24,0,{'year':2024})['total']==2
@@ -57,6 +69,7 @@ def test_build_public_models_media_routes_search_latest_and_safety(tmp_path,monk
  monkeypatch.setattr(routes_module,'service',service);client=TestClient(app)
  assert client.get('/api/public/catalog/items/brasil/teams/time-fc/collections/08-2023/same').status_code==200
  assert client.get('/api/public/catalog/items/brasil/teams/time-fc/items/direct').status_code==200
+ assert client.get('/api/public/catalog/seasons/brasil/time-fc/2024').status_code==200
  built=client.post('/api/public/catalog/build',json={}).json();assert 'viewRun' not in built and 'normalizationRunId' not in built
 
 def test_duplicate_direct_route_blocks_build(tmp_path):

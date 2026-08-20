@@ -96,6 +96,9 @@ CREATE TABLE IF NOT EXISTS html_image_contexts (
  id INTEGER PRIMARY KEY AUTOINCREMENT, html_page_id INTEGER NOT NULL, image_reference_id INTEGER NOT NULL,
  reference_original TEXT NOT NULL, resolved_relative_path TEXT, dom_order INTEGER NOT NULL,
  container_type TEXT, context_text TEXT, caption_text TEXT, extraction_rule TEXT NOT NULL,
+ image_container_dom_index INTEGER, description_container_dom_index INTEGER,
+ structural_group_key TEXT, image_container_type TEXT, description_container_type TEXT,
+ structural_order INTEGER,
  confidence TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL,
  FOREIGN KEY(html_page_id) REFERENCES html_pages(id) ON DELETE CASCADE,
  FOREIGN KEY(image_reference_id) REFERENCES html_image_references(id) ON DELETE CASCADE,
@@ -193,6 +196,8 @@ CREATE TABLE IF NOT EXISTS catalog_items (
  id INTEGER PRIMARY KEY AUTOINCREMENT, build_run_id INTEGER NOT NULL, team_id INTEGER NOT NULL,
  collection_id INTEGER, source_page_id INTEGER, original_title TEXT NOT NULL, title TEXT NOT NULL,
  relative_path TEXT NOT NULL, slug TEXT NOT NULL, item_type TEXT NOT NULL, confidence TEXT NOT NULL, source TEXT NOT NULL,
+ editorial_anchor TEXT NOT NULL DEFAULT 'page', editorial_status TEXT NOT NULL DEFAULT 'unsupported',
+ editorial_rule TEXT, editorial_description TEXT,
  FOREIGN KEY(build_run_id) REFERENCES catalog_build_runs(id) ON DELETE CASCADE,
  FOREIGN KEY(team_id) REFERENCES catalog_teams(id) ON DELETE CASCADE,
  FOREIGN KEY(collection_id) REFERENCES catalog_collections(id) ON DELETE SET NULL,
@@ -373,13 +378,14 @@ CREATE TABLE IF NOT EXISTS catalog_view_runs (
 CREATE TABLE IF NOT EXISTS catalog_view_countries (
  id INTEGER PRIMARY KEY AUTOINCREMENT, view_run_id INTEGER NOT NULL, slug TEXT NOT NULL, name TEXT NOT NULL,
  original_name TEXT, teams_count INTEGER NOT NULL, collections_count INTEGER NOT NULL, items_count INTEGER NOT NULL,
- primary_media_key TEXT, public_status TEXT NOT NULL, FOREIGN KEY(view_run_id) REFERENCES catalog_view_runs(id) ON DELETE CASCADE,
+ primary_media_key TEXT, logo_media_key TEXT, public_status TEXT NOT NULL, FOREIGN KEY(view_run_id) REFERENCES catalog_view_runs(id) ON DELETE CASCADE,
  UNIQUE(view_run_id,slug)
 );
 CREATE TABLE IF NOT EXISTS catalog_view_teams (
  id INTEGER PRIMARY KEY AUTOINCREMENT, view_run_id INTEGER NOT NULL, slug TEXT NOT NULL, country_slug TEXT NOT NULL,
  name TEXT NOT NULL, original_name TEXT, collections_count INTEGER NOT NULL, items_count INTEGER NOT NULL,
  images_count INTEGER NOT NULL, primary_media_key TEXT, latest_inclusion_period TEXT,
+ logo_media_key TEXT,
  public_status TEXT NOT NULL, FOREIGN KEY(view_run_id) REFERENCES catalog_view_runs(id) ON DELETE CASCADE,
  UNIQUE(view_run_id,country_slug,slug)
 );
@@ -421,6 +427,74 @@ CREATE INDEX IF NOT EXISTS idx_view_items_scope ON catalog_view_items(view_run_i
 CREATE INDEX IF NOT EXISTS idx_view_items_type_status ON catalog_view_items(view_run_id,item_type,public_status);
 CREATE INDEX IF NOT EXISTS idx_view_media_item ON catalog_view_media(view_run_id,item_public_route,display_order);
 
+CREATE TABLE IF NOT EXISTS team_branding_runs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, catalog_build_id INTEGER NOT NULL, started_at TEXT NOT NULL,
+ completed_at TEXT NOT NULL, status TEXT NOT NULL, teams INTEGER NOT NULL DEFAULT 0,
+ matched INTEGER NOT NULL DEFAULT 0, unavailable INTEGER NOT NULL DEFAULT 0, ambiguous INTEGER NOT NULL DEFAULT 0,
+ rules_version TEXT NOT NULL, FOREIGN KEY(catalog_build_id) REFERENCES catalog_build_runs(id) ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS team_branding (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, branding_run_id INTEGER NOT NULL, team_stable_key TEXT NOT NULL,
+ inventory_reference TEXT, relative_path TEXT, source_page TEXT, rule_code TEXT,
+ confidence TEXT NOT NULL, status TEXT NOT NULL,
+ FOREIGN KEY(branding_run_id) REFERENCES team_branding_runs(id) ON DELETE CASCADE,
+ UNIQUE(branding_run_id,team_stable_key)
+);
+CREATE INDEX IF NOT EXISTS idx_team_branding_run_status ON team_branding(branding_run_id,status);
+CREATE INDEX IF NOT EXISTS idx_team_branding_stable_key ON team_branding(team_stable_key,branding_run_id);
+
+CREATE TABLE IF NOT EXISTS country_branding_runs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, catalog_build_id INTEGER NOT NULL, started_at TEXT NOT NULL,
+ completed_at TEXT NOT NULL, status TEXT NOT NULL, countries INTEGER NOT NULL DEFAULT 0,
+ matched INTEGER NOT NULL DEFAULT 0, unavailable INTEGER NOT NULL DEFAULT 0, ambiguous INTEGER NOT NULL DEFAULT 0,
+ rules_version TEXT NOT NULL, FOREIGN KEY(catalog_build_id) REFERENCES catalog_build_runs(id) ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS country_branding (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, branding_run_id INTEGER NOT NULL, country_stable_key TEXT NOT NULL,
+ inventory_reference TEXT, relative_path TEXT, source_page TEXT, rule_code TEXT,
+ confidence TEXT NOT NULL, status TEXT NOT NULL,
+ FOREIGN KEY(branding_run_id) REFERENCES country_branding_runs(id) ON DELETE CASCADE,
+ UNIQUE(branding_run_id,country_stable_key)
+);
+CREATE INDEX IF NOT EXISTS idx_country_branding_run_status ON country_branding(branding_run_id,status);
+CREATE INDEX IF NOT EXISTS idx_country_branding_stable_key ON country_branding(country_stable_key,branding_run_id);
+
+CREATE TABLE IF NOT EXISTS historical_collection_runs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, started_at TEXT NOT NULL, completed_at TEXT,
+ status TEXT NOT NULL, schema_version TEXT NOT NULL, total_items INTEGER NOT NULL DEFAULT 0,
+ ready INTEGER NOT NULL DEFAULT 0, review_required INTEGER NOT NULL DEFAULT 0,
+ unavailable INTEGER NOT NULL DEFAULT 0, duration_ms INTEGER NOT NULL DEFAULT 0,
+ error_message TEXT
+);
+CREATE TABLE IF NOT EXISTS historical_collection_sections (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, section TEXT NOT NULL,
+ title TEXT NOT NULL, description TEXT NOT NULL, display_order INTEGER NOT NULL,
+ items_count INTEGER NOT NULL, ready INTEGER NOT NULL, review_required INTEGER NOT NULL,
+ unavailable INTEGER NOT NULL,
+ FOREIGN KEY(run_id) REFERENCES historical_collection_runs(id) ON DELETE CASCADE,
+ UNIQUE(run_id,section)
+);
+CREATE TABLE IF NOT EXISTS historical_collection_items (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, section TEXT NOT NULL,
+ group_key TEXT, title TEXT, description TEXT, category TEXT, slug TEXT NOT NULL,
+ stable_key TEXT NOT NULL, source_html TEXT NOT NULL, source_order INTEGER NOT NULL,
+ status TEXT NOT NULL,
+ FOREIGN KEY(run_id) REFERENCES historical_collection_runs(id) ON DELETE CASCADE,
+ UNIQUE(run_id,stable_key), UNIQUE(run_id,section,slug)
+);
+CREATE TABLE IF NOT EXISTS historical_collection_media (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, item_id INTEGER NOT NULL,
+ inventory_reference TEXT NOT NULL, relative_path TEXT NOT NULL, display_order INTEGER NOT NULL,
+ is_primary INTEGER NOT NULL, media_role TEXT NOT NULL, status TEXT NOT NULL,
+ FOREIGN KEY(run_id) REFERENCES historical_collection_runs(id) ON DELETE CASCADE,
+ FOREIGN KEY(item_id) REFERENCES historical_collection_items(id) ON DELETE CASCADE,
+ UNIQUE(run_id,item_id,inventory_reference)
+);
+CREATE INDEX IF NOT EXISTS idx_historical_runs_latest ON historical_collection_runs(status,id DESC);
+CREATE INDEX IF NOT EXISTS idx_historical_items_section ON historical_collection_items(run_id,section,group_key,source_order);
+CREATE INDEX IF NOT EXISTS idx_historical_items_slug ON historical_collection_items(run_id,section,slug);
+CREATE INDEX IF NOT EXISTS idx_historical_media_item ON historical_collection_media(run_id,item_id);
+
 CREATE TABLE IF NOT EXISTS media_build_runs (
  id INTEGER PRIMARY KEY AUTOINCREMENT, catalog_view_run_id INTEGER NOT NULL, started_at TEXT NOT NULL,
  completed_at TEXT, status TEXT NOT NULL, total_relations INTEGER NOT NULL DEFAULT 0,
@@ -441,6 +515,7 @@ CREATE TABLE IF NOT EXISTS media_assets (
 CREATE TABLE IF NOT EXISTS media_asset_relations (
  id INTEGER PRIMARY KEY AUTOINCREMENT, media_run_id INTEGER NOT NULL,
  view_public_media_key TEXT NOT NULL, media_key TEXT NOT NULL,
+ source_type TEXT NOT NULL DEFAULT 'catalog_view',
  FOREIGN KEY(media_run_id) REFERENCES media_build_runs(id) ON DELETE CASCADE,
  UNIQUE(media_run_id,view_public_media_key)
 );

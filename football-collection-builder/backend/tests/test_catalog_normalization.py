@@ -12,7 +12,7 @@ def seed(path,with_review=False,review_state='matched'):
         c.execute("insert into catalog_teams values(1,1,1,'SÃO  PAULO FC','sao paulo','sao-paulo','paises/brasil/sp','high','folder')")
         c.execute("insert into catalog_teams values(2,1,1,'unknown team','unknown team','unknown-team','paises/brasil/x','unknown','fallback')")
         c.execute("insert into catalog_collections values(1,1,1,'09_24_2','09_24_2','camisas/brasil/sp/09_24_2','inclusion_period',9,2024,2,'high','folder')")
-        c.execute("insert into catalog_items values(1,1,1,1,null,'CAMISA &amp; RARA','CAMISA &amp; RARA','paises/brasil/sp/rara.htm','rara','page','high','html')")
+        c.execute("insert into catalog_items(id,build_run_id,team_id,collection_id,source_page_id,original_title,title,relative_path,slug,item_type,confidence,source) values(1,1,1,1,null,'CAMISA &amp; RARA','CAMISA &amp; RARA','paises/brasil/sp/rara.htm','rara','page','high','html')")
         keys=[('country',1,'country:key'),('team',1,'team:key'),('team',2,'team:unknown'),('collection',1,'collection:key'),('item',1,'item:key')]
         c.executemany('insert into catalog_stable_keys(build_run_id,entity_type,entity_id,stable_key) values(1,?,?,?)',keys)
         if with_review:

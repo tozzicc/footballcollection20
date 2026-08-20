@@ -1,5 +1,25 @@
 # Backend do Football Collection Builder
 
+## Historical Collections — ET-020
+
+`HistoricalCollectionsService` lê somente os HTMLs autorizados de Pennants, Flags e Memorabilia, preserva a ordem estrutural e persiste um run transacional com schema `1.0.0`. As tabelas são `historical_collection_runs`, `historical_collection_sections`, `historical_collection_items` e `historical_collection_media`.
+
+Admin: `POST /api/historical-collections/build` e `GET /api/historical-collections/status`. API pública: `GET /api/public/collections/summary`, `/sections`, `/sections/{section}`, `/sections/{section}/items` e `/sections/{section}/items/{slug}`. Flâmulas também oferecem `/sections/pennants/groups` e `/groups/{group}`. A paginação padrão é 24 e o contrato não expõe paths, HTML de origem, IDs, stable keys ou regras internas.
+
+A Media Layer consome `historical_collection_media` como fonte explícita e reutiliza o mesmo algoritmo de media key. O build real produziu 196 itens: 148 Flâmulas, 9 Bandeiras e 39 itens de Memorabilia; 193 `ready`, 3 `review_required` e nenhum indisponível.
+
+## ET-018G — consulta pública de temporada
+
+`GET /api/public/catalog/seasons/{country}/{team}/{season}` consulta exclusivamente o View Model corrente e devolve equipe, país, resumo e registros editoriais com suas mídias na ordem persistida. A resposta omite source page, stable keys, caminhos físicos, IDs e regras internas. Nenhuma camada derivada precisa ser reconstruída.
+
+## ET-018E — Country Branding
+
+`CountryBrandingService` deriva identidades a partir da posição editorial do emblema antes da grade de thumbnails na landing direta do país. As tabelas versionadas `country_branding_runs` e `country_branding` registram regra, origem, confiança e status. O View Model 1.4.0 expõe `logoMedia` sem caminhos físicos, stable keys ou IDs internos, e a Media Layer entrega os assets com cache HTTP.
+
+## ET-018D — Team Branding
+
+`TeamBrandingService` deriva logos por stable key usando somente a associação estrutural entre a landing page da equipe e um único asset persistido sob `logos/`. Os resultados versionados ficam em `team_branding_runs` e `team_branding`, com regra, origem, confiança e status auditáveis. O View Model 1.3.0 publica `logoMedia` sem expor stable keys, caminhos físicos ou IDs internos; a Media Layer continua responsável pela entrega HTTP.
+
 ## ET-018A — contexto editorial seguro
 
 `html_image_contexts` registra ordem DOM, container, texto associado, regra HX001–HX004, confiança e status. HX001 cobre o padrão legado predominante de uma tabela com o grupo de fotos seguida por uma tabela textual; HX002/HX003 cobrem container único; HX004 bloqueia associação em blocos compartilhados. O parser não usa `text_preview` para essa relação e mantém o Workspace somente leitura.
@@ -169,6 +189,8 @@ Endpoints: POST /api/html-parser/parse; GET /api/html-parser/status; GET /api/ht
 
 O processamento é sequencial e síncrono. Falhas por página são registradas sem interromper as demais; falhas fatais de persistência provocam rollback.
 
+Desde a ET-018H, `html_image_contexts` também persiste os índices dos contêineres de imagem e descrição, `structural_group_key`, tipos dos contêineres e ordem estrutural. A chave é local à página e identifica a fronteira real do DOM; texto repetido não participa da identidade. HX001–HX003 podem formar grupos seguros, enquanto HX004 e estruturas insuficientes permanecem ambíguas ou não suportadas.
+
 ## Image Parser — ET-011
 
 O `ImageParserService` consulta imagens no Inventory, lê metadados com Pillow e persiste resultados via `ImageParserRepository`. SVG é tratado sem Pillow. O cruzamento com HTML reutiliza `referenced_inventory_item_id` e referências ausentes já normalizadas pelo Parser HTML.
@@ -200,6 +222,6 @@ Endpoints: status, run, summary, coleções paginadas `countries`, `teams`, `col
 
 ## Catalog View Model / Public API (ET-016)
 
-`CatalogViewService` deriva entidades públicas exclusivamente do último normalization run completo. `CatalogViewRepository` persiste histórico e atende countries, teams, collections, items, media, navigation, search e latest. `VIEW_SCHEMA_VERSION=1.0.0`.
+`CatalogViewService` deriva entidades públicas exclusivamente do último normalization run completo. `CatalogViewRepository` persiste histórico e atende countries, teams, collections, items, media, navigation, search e latest. A versão corrente é `VIEW_SCHEMA_VERSION=1.4.0`.
 
 `ready` indica estrutura navegável, `review_required` preserva pendências da normalização e `unavailable` indica ausência de campos/relacionamentos mínimos. Primary Media prioriza `isPrimaryCandidate`, depois a primeira relação persistida válida; sem relação retorna `null`. A API nunca retorna `absolutePath`, `workspacePath`, stableKey ou IDs SQL.

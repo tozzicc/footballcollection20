@@ -2,12 +2,15 @@ from __future__ import annotations
 from pathlib import Path
 from app.database.database import DEFAULT_DATABASE_PATH,Database
 from app.database.schema import SCHEMA_SQL
+from app.config.public_site import HERO_MEDIA_ITEMS
 
 class MediaRepository:
  def __init__(self,database_path:str|Path=DEFAULT_DATABASE_PATH):self.database=Database(database_path)
  def create_schema(self):
   from app.repositories.catalog_view_repository import CatalogViewRepository
   CatalogViewRepository(self.database.path).create_schema()
+  with self.database.connect() as c:
+   if 'source_type' not in {x['name'] for x in c.execute('pragma table_info(media_asset_relations)')}:c.execute("alter table media_asset_relations add column source_type TEXT NOT NULL DEFAULT 'catalog_view'")
  def latest_view(self):
   self.create_schema()
   with self.database.connect() as c:r=c.execute("select id from catalog_view_runs where status='completed' order by id desc limit 1").fetchone()
@@ -20,14 +23,22 @@ class MediaRepository:
   with self.database.connect() as c:
    workspace=c.execute('select workspace_path from inventory_metadata where id=1').fetchone()
    rows=c.execute('''select v.public_media_key,v.inventory_reference,m.relative_path,m.extension,m.format,m.file_size,m.width,m.height,m.aspect_ratio,m.valid_image,m.readable,m.modified_at from catalog_view_media v join image_metadata m on m.inventory_item_id=v.inventory_reference where v.view_run_id=? order by v.id''',(view_run_id,)).fetchall()
-  return (None if workspace is None else workspace['workspace_path'],[dict(x) for x in rows])
+   result=[dict(x) for x in rows]
+   for row in result:row['source_type']='catalog_view'
+   for index,item in enumerate(HERO_MEDIA_ITEMS):
+    hero=c.execute('''select ? public_media_key,inventory_item_id inventory_reference,relative_path,extension,format,file_size,width,height,aspect_ratio,valid_image,readable,modified_at from image_metadata where lower(replace(relative_path,'\\','/'))=lower(?) order by id desc limit 1''',(f'site-config:hero:{index}',item['relative_path'])).fetchone()
+    if hero:
+     value=dict(hero);value['source_type']='hero';result.append(value)
+  from app.repositories.historical_collections_repository import HistoricalCollectionsRepository
+  result.extend(HistoricalCollectionsRepository(self.database.path).media_source())
+  return (None if workspace is None else workspace['workspace_path'],result)
  def persist(self,run,assets,relations):
   c=self.database.connect()
   try:
    c.execute('BEGIN');cols=','.join(run);marks=','.join('?' for _ in run);rid=int(c.execute(f'insert into media_build_runs({cols}) values({marks})',tuple(run.values())).lastrowid)
    for row in assets:
     data={'media_run_id':rid,**row};cs=','.join(data);ms=','.join('?' for _ in data);c.execute(f'insert into media_assets({cs}) values({ms})',tuple(data.values()))
-   c.executemany('insert into media_asset_relations(media_run_id,view_public_media_key,media_key) values(?,?,?)',[(rid,x['view_public_media_key'],x['media_key']) for x in relations]);c.commit();return rid
+   c.executemany('insert into media_asset_relations(media_run_id,view_public_media_key,media_key,source_type) values(?,?,?,?)',[(rid,x['view_public_media_key'],x['media_key'],x.get('source_type','catalog_view')) for x in relations]);c.commit();return rid
   except Exception:c.rollback();raise
   finally:c.close()
  def asset(self,media_key):
